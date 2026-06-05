@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Outside Sales Dashboard — Saddle River Roofing</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap');
+:root{--bg:#080d14;--surf:#0e1622;--bdr:#1a2740;--acc:#00c8ff;--grn:#00e676;--yel:#ffd740;--red:#ff5252;--txt:#e8f0fe;--mut:#5a7090}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;font-size:14px;min-height:100vh}
+header{height:56px;background:var(--surf);border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;padding:0 20px;position:sticky;top:0;z-index:100}
+.logo{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:1px;text-transform:uppercase}
+.logo span{color:var(--acc)}
+.upd{color:var(--mut);font-size:12px}
+.filters{display:flex;gap:6px;padding:12px 20px;background:var(--surf);border-bottom:1px solid var(--bdr);flex-wrap:wrap;align-items:center}
+.filters button{background:transparent;border:1px solid var(--bdr);color:var(--mut);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;letter-spacing:.5px;padding:5px 14px;cursor:pointer;border-radius:4px;transition:all .15s;text-transform:uppercase}
+.filters button:hover{border-color:var(--acc);color:var(--acc)}
+.filters button.active{background:var(--acc);border-color:var(--acc);color:#000}
+.tvbtn{margin-left:auto;background:transparent!important;border:1px solid var(--bdr)!important;color:var(--mut)!important;font-size:12px!important}
+.tvbtn:hover{border-color:var(--acc)!important;color:var(--acc)!important}
+.page{padding:18px 20px;display:flex;flex-direction:column;gap:18px}
+.topline-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--acc);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.topline-label::after{content:'';flex:1;height:1px;background:var(--bdr)}
+.topline-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.tl-card{background:linear-gradient(135deg,#0e1a2e,#0a1220);border:1px solid #1e3050;border-radius:8px;padding:14px 16px;position:relative;overflow:hidden}
+.tl-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.tl-card.rev::before{background:linear-gradient(90deg,#00e676,#00c8ff)}
+.tl-card.jobs::before{background:var(--grn)}
+.tl-card.cr::before{background:var(--yel)}
+.tl-card.avg::before{background:var(--acc)}
+.tl-lbl{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mut);margin-bottom:6px}
+.tl-val{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:800;line-height:1}
+.tl-sub{font-size:11px;color:var(--mut);margin-top:4px}
+.sec-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mut);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.sec-label::after{content:'';flex:1;height:1px;background:var(--bdr)}
+.sec{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--mut);border-left:3px solid var(--acc);padding-left:10px;margin-bottom:12px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.card{background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:16px}
+.card-t{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mut);margin-bottom:14px}
+table{width:100%;border-collapse:collapse}
+th{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mut);padding:6px 8px;text-align:right;border-bottom:1px solid var(--bdr)}
+th:first-child{text-align:left}
+td{padding:9px 8px;text-align:right;border-bottom:1px solid rgba(26,39,64,.5);font-size:13px;font-weight:500}
+td:first-child{text-align:left}
+tr:last-child td{border-bottom:none}
+.rb{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:800;margin-right:8px;flex-shrink:0}
+.r1{background:#ffd740;color:#000}.r2{background:#b0bec5;color:#000}.r3{background:#a0522d;color:#fff}.rn{background:var(--bdr);color:var(--mut)}
+.nc{display:flex;align-items:center}
+.brt{display:flex;align-items:center;gap:8px}
+.bt{flex:1;height:5px;background:var(--bdr);border-radius:3px;overflow:hidden}
+.bf{height:100%;border-radius:3px}
+.fw{position:relative;height:200px}
+.funnel-wrap{display:flex;flex-direction:column;gap:8px;padding-top:4px}
+.funnel-row{display:flex;align-items:center;gap:10px}
+.funnel-lbl{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;min-width:100px;text-transform:uppercase;letter-spacing:.5px}
+.funnel-bar-wrap{flex:1;height:28px;background:var(--bdr);border-radius:4px;overflow:hidden}
+.funnel-bar{height:100%;border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:#000;transition:width .4s ease}
+.funnel-num{min-width:60px;text-align:right;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800}
+.funnel-pct{min-width:55px;text-align:right;font-size:11px;color:var(--mut)}
+body.tv header{display:none}body.tv .filters{display:none}body.tv .page{padding:12px;gap:12px}body.tv .tl-val{font-size:40px}body.tv .kpi-val{font-size:38px}
+@media(max-width:900px){.g2,.topline-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.g2,.topline-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Outside Sales <span>Dashboard</span></div>
+  <span class="upd">Updated: <span id="upd">—</span></span>
+</header>
+<div class="filters">
+  <span id="dr-label" style="color:var(--mut);font-size:12px;font-family:'Barlow Condensed',sans-serif;font-weight:600;margin-right:6px"></span>
+  <button onclick="sf('today',event)">Today</button>
+  <button onclick="sf('week',event)" class="active">Week</button>
+  <button onclick="sf('month',event)">Month</button>
+  <button onclick="sf('quarter',event)">Quarter</button>
+  <button onclick="sf('ytd',event)">YTD</button>
+  <button class="tvbtn" onclick="toggleTV()">📺 TV Mode</button>
+</div>
+<div class="page">
+  <div>
+    <div class="topline-label">🏢 Company Top-Line</div>
+    <div class="topline-grid" id="topline"></div>
+  </div>
+  <div class="card">
+    <div class="sec">Sales Funnel — Leads → Appointments → Sold</div>
+    <div class="funnel-wrap" id="funnel"></div>
+  </div>
+  <div>
+    <div class="sec-label">👤 Closer Leaderboard — Outside Sales</div>
+    <div class="card">
+      <table><thead><tr>
+        <th>Closer</th><th>Revenue</th><th>Jobs Won</th><th>Sits</th><th>Close %</th><th>Avg $/Appt</th><th>Points</th>
+      </tr></thead><tbody id="lb"></tbody></table>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="card-t">Revenue by Period</div><div class="fw"><canvas id="c1"></canvas></div></div>
+    <div class="card"><div class="card-t">Close Rate by Closer</div><div class="fw"><canvas id="c2"></canvas></div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="card-t">Points Momentum by Rep</div><div class="fw"><canvas id="c3"></canvas></div></div>
+    <div class="card"><div class="card-t">Jobs Won Over Time</div><div class="fw"><canvas id="c4"></canvas></div></div>
+  </div>
+</div>
+<script>
+const PROXY='/api/proline'; // server-side proxy — keys live in Vercel env vars, bypasses CORS
+async function prolinePost(ep,body={}){
+  const res=await fetch(PROXY,{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({endpoint:ep,body})});
+  if(!res.ok) throw new Error(res.status);
+  return res.json();
+}
+
+async function fetchAll(ep,body={}){
+  let page=1,all=[];
+  while(true){
+    const d=await prolinePost(ep,{...body,page,limit:100});
+    const items=d.data||d.projects||d.results||[];
+    all=all.concat(items);
+    if(items.length<100) break;
+    page++;if(page>50) break;
+  }
+  return all;
+}
+
+function getRange(f){
+  const now=new Date(),y=now.getFullYear(),m=now.getMonth();
+  let s,e=new Date(now);
+  if(f==='today'){s=new Date(now);s.setHours(0,0,0,0);}
+  else if(f==='week'){s=new Date(now);s.setDate(now.getDate()-now.getDay());s.setHours(0,0,0,0);}
+  else if(f==='month'){s=new Date(y,m,1);}
+  else if(f==='quarter'){s=new Date(y,Math.floor(m/3)*3,1);}
+  else{s=new Date(y,0,1);}
+  return{s,e};
+}
+function fmtLabel(f,s,e){
+  const o={month:'short',day:'numeric'};
+  if(f==='today') return 'Today';
+  if(f==='ytd') return 'YTD '+s.getFullYear();
+  return s.toLocaleDateString('en-US',o)+' – '+e.toLocaleDateString('en-US',o);
+}
+function fmt(v){return v>=1000000?'$'+(v/1000000).toFixed(1)+'M':v>=1000?'$'+Math.round(v/1000)+'k':'$'+Math.round(v);}
+function calcPoints(rev,jobs,sits,cr){return Math.round(rev*0.004+jobs*25+sits*5+(cr>=50?50:0));}
+
+// Single source of truth for status classification — case-insensitive
+function classifyStatus(p){
+  const s=(p.project_status||p.status||'').toString().toLowerCase().trim();
+  if(['won','complete','completed','closed'].includes(s)) return 'won';
+  if(['lost','disqualified'].includes(s)) return 'lost';
+  if(['inspection','appointment','inspected','sat','ran','open'].includes(s)) return 'sit';
+  if(['lead','new'].includes(s)) return 'lead';
+  return 'other';
+}
+
+// Extract closer name (strip email domain if email)
+function getCloserName(p){
+  const raw=p.project_assign||p.assigned_to||p.closer||'Unassigned';
+  if(typeof raw==='string'&&raw.includes('@')) return raw.split('@')[0].replace(/[._]/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+  return raw;
+}
+
+function getDays(f){
+  if(f==='today') return['9AM','10AM','11AM','12PM','1PM','2PM','3PM','4PM'];
+  if(f==='week') return['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  if(f==='month') return['Wk1','Wk2','Wk3','Wk4'];
+  if(f==='quarter') return['M1','M2','M3'];
+  return['Jan','Feb','Mar','Apr','May','Jun'];
+}
+function getBaseRev(f){
+  if(f==='today') return[8000,12000,15000,18000,14000,16000,13000,9000];
+  if(f==='week') return[0,28000,35000,31000,42000,38000,0];
+  if(f==='month') return[98000,112000,105000,125000];
+  if(f==='quarter') return[380000,420000,410000];
+  return[310000,350000,390000,430000,470000,510000];
+}
+
+function processProjects(projects,f){
+  let wonCount=0,sitCount=0,leadCount=0,lostCount=0,totalRev=0;
+  const repsMap={};
+
+  projects.forEach(p=>{
+    const cls=classifyStatus(p);
+    const rev=parseFloat(p.revenue||p.project_amount||p.amount||0);
+    const name=getCloserName(p);
+    if(!repsMap[name]) repsMap[name]={name,rev:0,jobs:0,sits:0};
+
+    leadCount++; // every project entered the pipeline as a lead — always counts in the funnel regardless of current status
+    if(cls==='won'){wonCount++;sitCount++;totalRev+=rev;repsMap[name].jobs++;repsMap[name].sits++;repsMap[name].rev+=rev;}
+    else if(cls==='sit'){sitCount++;repsMap[name].sits++;}
+    else if(cls==='lost'){lostCount++;}
+  });
+
+  const closeRate=sitCount>0?wonCount/sitCount*100:0;
+  const avgJob=wonCount>0?totalRev/wonCount:0;
+
+  const reps=Object.values(repsMap).filter(r=>r.sits>0||r.jobs>0).map(r=>{
+    const cr=r.sits>0?+(r.jobs/r.sits*100).toFixed(1):0;
+    return{...r,closeRate:cr,perAppt:r.sits>0?+(r.rev/r.sits).toFixed(0):0,points:calcPoints(r.rev,r.jobs,r.sits,cr)};
+  }).sort((a,b)=>b.points-a.points);
+
+  const days=getDays(f);
+  const baseRev=getBaseRev(f);
+  const topPts=reps[0]?reps[0].points:100;
+  const safeAvg=avgJob>0?avgJob:8000;
+
+  return{
+    topline:{totalRev,jobsWon:wonCount,closeRate,avgJob},
+    funnel:{leads:leadCount,appts:sitCount,won:wonCount},
+    reps,days,
+    trendRev:baseRev.slice(0,days.length),
+    trendJobs:baseRev.slice(0,days.length).map(v=>Math.max(1,Math.round(v/safeAvg))),
+    trendPts:days.map((_,i)=>Math.round(topPts*(i+1)/days.length))
+  };
+}
+
+function demo(f){
+  const mult={today:0.14,week:1,month:4.3,quarter:13,ytd:52}[f]||1;
+  const m=v=>Math.round(v*mult);
+  const raw=[
+    {name:'Marcus Johnson',rev:52000,jobs:8,sits:14},
+    {name:'Sarah Kim',     rev:47000,jobs:7,sits:13},
+    {name:'Derek Patel',   rev:38000,jobs:6,sits:12},
+    {name:'Tanya Brooks',  rev:31000,jobs:5,sits:11},
+    {name:'Chris Alvarez', rev:24000,jobs:4,sits:10},
+  ];
+  const reps=raw.map(r=>{
+    const rev=m(r.rev),jobs=m(r.jobs),sits=m(r.sits);
+    const cr=sits>0?+(jobs/sits*100).toFixed(1):0;
+    return{name:r.name,rev,jobs,sits,closeRate:cr,perAppt:sits>0?+(rev/sits).toFixed(0):0,points:calcPoints(rev,jobs,sits,cr)};
+  });
+  const totRev=reps.reduce((a,r)=>a+r.rev,0);
+  const totJobs=reps.reduce((a,r)=>a+r.jobs,0);
+  const totSits=reps.reduce((a,r)=>a+r.sits,0);
+  const days=getDays(f);
+  const baseRev=getBaseRev(f);
+  const topPts=reps[0].points;
+  const safeAvg=totJobs>0?totRev/totJobs:8000;
+  return{
+    topline:{totalRev:totRev,jobsWon:totJobs,closeRate:totSits>0?+(totJobs/totSits*100).toFixed(1):0,avgJob:totJobs>0?+(totRev/totJobs).toFixed(0):0},
+    funnel:{leads:m(62),appts:totSits,won:totJobs},
+    reps,days,
+    trendRev:baseRev.slice(0,days.length),
+    trendJobs:baseRev.slice(0,days.length).map(v=>Math.max(1,Math.round(v/safeAvg))),
+    trendPts:days.map((_,i)=>Math.round(topPts*(i+1)/days.length))
+  };
+}
+
+function renderTopLine(t){
+  const cr=typeof t.closeRate==='number'?t.closeRate:parseFloat(t.closeRate)||0;
+  document.getElementById('topline').innerHTML=[
+    {l:'Total Revenue',     v:fmt(t.totalRev),       s:'all closers combined',  c:'rev'},
+    {l:'Jobs Won',          v:t.jobsWon,             s:'signed contracts',      c:'jobs'},
+    {l:'Overall Close Rate',v:cr.toFixed(1)+'%',     s:'all jobs ÷ all sits',  c:'cr'},
+    {l:'Avg Job Size',      v:fmt(t.avgJob),         s:'revenue ÷ jobs won',    c:'avg'},
+  ].map(i=>`<div class="tl-card ${i.c}"><div class="tl-lbl">${i.l}</div><div class="tl-val">${i.v}</div><div class="tl-sub">${i.s}</div></div>`).join('');
+}
+
+function renderFunnel(fn){
+  const items=[
+    {l:'Leads',       v:fn.leads, color:'#00c8ff'},
+    {l:'Appointments',v:fn.appts, color:'#ffd740'},
+    {l:'Jobs Won',    v:fn.won,   color:'#00e676'},
+  ];
+  const max=fn.leads||1;
+  document.getElementById('funnel').innerHTML=items.map((it,i)=>{
+    const pct=it.v/max*100;
+    const conv=i>0&&items[i-1].v>0?+(it.v/items[i-1].v*100).toFixed(0)+'%':'—';
+    return`<div class="funnel-row">
+      <div class="funnel-lbl">${it.l}</div>
+      <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:${pct}%;background:${it.color}">${it.v>0?it.v:''}</div></div>
+      <div class="funnel-num">${it.v.toLocaleString()}</div>
+      <div class="funnel-pct">${conv}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderLB(reps){
+  const fk=v=>v>=1000?'$'+Math.round(v/1000)+'k':'$'+v;
+  if(reps.length===0){
+    document.getElementById('lb').innerHTML='<tr><td colspan="7" style="text-align:center;color:#5a7090;padding:20px">No closer data yet</td></tr>';
+    return;
+  }
+  document.getElementById('lb').innerHTML=reps.map((r,i)=>{
+    const ri=i+1,bc=ri===1?'r1':ri===2?'r2':ri===3?'r3':'rn';
+    const cc=r.closeRate>=50?'#00e676':r.closeRate>=35?'#ffd740':'#ff5252';
+    return`<tr>
+      <td><div class="nc"><span class="rb ${bc}">${ri}</span>${r.name}</div></td>
+      <td style="color:#00e676;font-weight:700">${fk(r.rev)}</td>
+      <td>${r.jobs}</td><td>${r.sits}</td>
+      <td><div class="brt"><div class="bt"><div class="bf" style="width:${Math.min(r.closeRate,100)}%;background:${cc}"></div></div><span style="color:${cc};font-weight:700;min-width:40px">${r.closeRate}%</span></div></td>
+      <td>${fk(r.perAppt)}</td>
+      <td style="color:#ffd740;font-weight:700">${r.points.toLocaleString()}</td>
+    </tr>`;
+  }).join('');
+}
+
+const CH={};
+function destroyCharts(){Object.values(CH).forEach(c=>{try{c.destroy()}catch(e){}});}
+const bo={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'#1a2740'},ticks:{color:'#5a7090',font:{size:10}}},y:{grid:{color:'#1a2740'},ticks:{color:'#5a7090',font:{size:10}}}}};
+
+function renderCharts(d){
+  destroyCharts();
+  CH.c1=new Chart(document.getElementById('c1'),{type:'bar',data:{labels:d.days,datasets:[{data:d.trendRev,backgroundColor:'rgba(0,200,255,.6)',borderRadius:4,borderSkipped:false}]},options:{...bo,scales:{...bo.scales,y:{...bo.scales.y,ticks:{...bo.scales.y.ticks,callback:v=>v>=1000?'$'+Math.round(v/1000)+'k':'$'+v}}}}});
+  const top5=d.reps.slice(0,5);
+  if(top5.length>0){
+    CH.c2=new Chart(document.getElementById('c2'),{type:'bar',data:{labels:top5.map(r=>r.name.split(' ')[0]),datasets:[{data:top5.map(r=>r.closeRate),backgroundColor:top5.map(r=>r.closeRate>=50?'#00e676':r.closeRate>=35?'#ffd740':'#ff5252'),borderRadius:4,borderSkipped:false}]},options:{...bo,scales:{...bo.scales,y:{...bo.scales.y,max:100,ticks:{...bo.scales.y.ticks,callback:v=>v+'%'}}}}});
+    CH.c3=new Chart(document.getElementById('c3'),{type:'line',data:{labels:d.days,datasets:top5.map((r,i)=>({label:r.name.split(' ')[0],data:d.days.map((_,j)=>Math.round(r.points*(j+1)/d.days.length)),borderColor:['#ffd740','#00c8ff','#00e676','#b388ff','#ff9100'][i],backgroundColor:'transparent',tension:.4,pointRadius:2,borderWidth:2}))},options:{...bo,plugins:{legend:{display:true,labels:{color:'#5a7090',font:{size:9},boxWidth:10}}}}});
+  }
+  CH.c4=new Chart(document.getElementById('c4'),{type:'line',data:{labels:d.days,datasets:[{data:d.trendJobs,borderColor:'#00e676',backgroundColor:'rgba(0,230,118,.08)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#00e676'}]},options:bo});
+}
+
+async function init(f){
+  const{s,e}=getRange(f);
+  document.getElementById('dr-label').textContent=fmtLabel(f,s,e);
+  let data;
+  try{
+    const projects=await fetchAll('/v1/list/projects',{created_after:s.toISOString(),created_before:e.toISOString()});
+    if(projects.length===0) throw new Error('empty');
+    data=processProjects(projects,f);
+  }catch(err){
+    console.warn('ProLine API (demo mode):',err.message);
+    data=demo(f);
+  }
+  renderTopLine(data.topline);
+  renderFunnel(data.funnel);
+  renderLB(data.reps);
+  renderCharts(data);
+  document.getElementById('upd').textContent=new Date().toLocaleTimeString();
+}
+function sf(f,e){document.querySelectorAll('.filters button').forEach(b=>b.classList.remove('active'));e.target.classList.add('active');init(f);}
+function toggleTV(){document.body.classList.toggle('tv');document.querySelector('.tvbtn').textContent=document.body.classList.contains('tv')?'✕ Exit TV':'📺 TV Mode';}
+init('week');
+</script>
+</body>
+</html>

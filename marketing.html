@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Marketing Dashboard — Saddle River Roofing</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap');
+:root{--bg:#080d14;--surf:#0e1622;--bdr:#1a2740;--acc:#00c8ff;--grn:#00e676;--yel:#ffd740;--red:#ff5252;--txt:#e8f0fe;--mut:#5a7090}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;font-size:14px;min-height:100vh}
+header{height:56px;background:var(--surf);border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;padding:0 20px;position:sticky;top:0;z-index:100}
+.logo{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:1px;text-transform:uppercase}
+.logo span{color:var(--acc)}
+.upd{color:var(--mut);font-size:12px}
+.filters{display:flex;gap:6px;padding:12px 20px;background:var(--surf);border-bottom:1px solid var(--bdr);flex-wrap:wrap;align-items:center}
+.filters button{background:transparent;border:1px solid var(--bdr);color:var(--mut);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;letter-spacing:.5px;padding:5px 14px;cursor:pointer;border-radius:4px;transition:all .15s;text-transform:uppercase}
+.filters button:hover{border-color:var(--acc);color:var(--acc)}
+.filters button.active{background:var(--acc);border-color:var(--acc);color:#000}
+.tvbtn{margin-left:auto;background:transparent!important;border:1px solid var(--bdr)!important;color:var(--mut)!important;font-size:12px!important}
+.tvbtn:hover{border-color:var(--acc)!important;color:var(--acc)!important}
+.page{padding:18px 20px;display:flex;flex-direction:column;gap:18px}
+.kpi-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px}
+.kpi{background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:14px 16px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--acc)}
+.kpi.g::before{background:var(--grn)}.kpi.y::before{background:var(--yel)}.kpi.r::before{background:var(--red)}
+.kpi-lbl{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mut);margin-bottom:6px}
+.kpi-val{font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;line-height:1}
+.kpi-sub{font-size:11px;color:var(--mut);margin-top:4px}
+.sec{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--mut);border-left:3px solid var(--acc);padding-left:10px;margin-bottom:12px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+.card{background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:16px}
+.card-t{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mut);margin-bottom:14px}
+table{width:100%;border-collapse:collapse}
+th{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mut);padding:6px 8px;text-align:right;border-bottom:1px solid var(--bdr)}
+th:first-child{text-align:left}
+td{padding:9px 8px;text-align:right;border-bottom:1px solid rgba(26,39,64,.5);font-size:13px;font-weight:500}
+td:first-child{text-align:left}
+tr:last-child td{border-bottom:none}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px}
+.src-cell{display:flex;align-items:center}
+.fw{position:relative;height:200px}
+.roas-center{display:flex;flex-direction:column;align-items:center;justify-content:center;height:180px}
+.roas-num{font-family:'Barlow Condensed',sans-serif;font-size:64px;font-weight:800;line-height:1}
+.roas-lbl{font-family:'Barlow Condensed',sans-serif;font-size:14px;color:var(--mut);letter-spacing:1px;text-transform:uppercase;margin-top:4px}
+.roas-sub{font-size:11px;color:var(--mut);margin-top:6px;text-align:center}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.bar-lbl{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;min-width:90px}
+.bt{flex:1;height:6px;background:var(--bdr);border-radius:3px;overflow:hidden}
+.bf{height:100%;border-radius:3px}
+.bar-val{font-size:12px;font-weight:600;min-width:35px;text-align:right}
+.api-note{background:rgba(0,200,255,.06);border:1px solid rgba(0,200,255,.2);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--mut);line-height:1.6}
+.api-note strong{color:var(--acc)}
+body.tv header{display:none}body.tv .filters{display:none}body.tv .page{padding:12px;gap:12px}body.tv .kpi-val{font-size:38px}
+@media(max-width:900px){.g2,.g3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Marketing <span>Dashboard</span></div>
+  <span class="upd">Updated: <span id="upd">—</span></span>
+</header>
+<div class="filters">
+  <span id="dr-label" style="color:var(--mut);font-size:12px;font-family:'Barlow Condensed',sans-serif;font-weight:600;margin-right:6px"></span>
+  <button onclick="sf('today',event)">Today</button>
+  <button onclick="sf('week',event)" class="active">Week</button>
+  <button onclick="sf('month',event)">Month</button>
+  <button onclick="sf('quarter',event)">Quarter</button>
+  <button onclick="sf('ytd',event)">YTD</button>
+  <button class="tvbtn" onclick="toggleTV()">📺 TV Mode</button>
+</div>
+<div class="page">
+  <div class="kpi-strip" id="kpis"></div>
+  <div class="g2">
+    <div class="card">
+      <div class="sec">Performance by Source</div>
+      <table><thead><tr>
+        <th>Source</th><th>Leads</th><th>Appts</th><th>Jobs</th><th>Lead→Appt</th><th>Lead→Sold</th><th>Revenue</th>
+      </tr></thead><tbody id="src-body"></tbody></table>
+    </div>
+    <div class="card"><div class="card-t">Revenue by Source</div><div class="fw" style="height:240px"><canvas id="c-rev"></canvas></div></div>
+  </div>
+  <div class="g3">
+    <div class="card"><div class="card-t">Leads by Period</div><div class="fw"><canvas id="c-leads"></canvas></div></div>
+    <div class="card"><div class="card-t">Lead→Appt % by Source</div><div class="fw"><canvas id="c-conv"></canvas></div></div>
+    <div class="card"><div class="card-t">Jobs Won by Source</div><div class="fw"><canvas id="c-jobs"></canvas></div></div>
+  </div>
+  <div class="g3">
+    <div class="card roas-center">
+      <div class="card-t" style="text-align:center">ROAS</div>
+      <div class="roas-num" id="roas-num">—</div>
+      <div class="roas-lbl">Return on Ad Spend</div>
+      <div class="roas-sub" id="roas-sub">$1 spent → $X revenue</div>
+    </div>
+    <div class="card"><div class="card-t">Marketing % of Revenue</div><div class="fw"><canvas id="c-mktpct"></canvas></div></div>
+    <div class="card"><div class="card-t">Leads by Source</div><div id="src-bars" style="padding-top:8px"></div></div>
+  </div>
+  <div class="api-note">
+    <strong>Developer Note:</strong> Lead source pulled from <code>contact_lead_source</code> via <code>POST /v1/list/projects</code>. Ad spend (CPL, CPA, ROAS) requires manual entry — update the <code>AD_SPEND</code> object below with values from Google Ads / Meta / QuickBooks.
+  </div>
+</div>
+<script>
+const PROXY='/api/proline'; // server-side proxy — keys live in Vercel env vars, bypasses CORS
+// Manual ad spend per source — update with real values from ad platforms + QuickBooks
+const AD_SPEND={
+  'Google Ads':2100,
+  'Facebook':1400,
+  'Direct Mail':800,
+  'Door Knock':600,
+  'Referral':200,
+  'Organic':0,
+};
+
+const SRC_COLORS={
+  'Google Ads':'#4285f4',
+  'Facebook':'#1877f2',
+  'Referral':'#00e676',
+  'Door Knock':'#ffd740',
+  'Organic':'#b388ff',
+  'Direct Mail':'#ff9100',
+};
+
+async function prolinePost(ep,body={}){
+  const res=await fetch(PROXY,{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({endpoint:ep,body})});
+  if(!res.ok) throw new Error(res.status);
+  return res.json();
+}
+async function fetchAll(ep,body={}){
+  let page=1,all=[];
+  while(true){
+    const d=await prolinePost(ep,{...body,page,limit:100});
+    const items=d.data||d.projects||d.results||[];
+    all=all.concat(items);
+    if(items.length<100)break;
+    page++;if(page>50)break;
+  }
+  return all;
+}
+
+function getRange(f){
+  const now=new Date(),y=now.getFullYear(),m=now.getMonth();
+  let s,e=new Date(now);
+  if(f==='today'){s=new Date(now);s.setHours(0,0,0,0);}
+  else if(f==='week'){s=new Date(now);s.setDate(now.getDate()-now.getDay());s.setHours(0,0,0,0);}
+  else if(f==='month'){s=new Date(y,m,1);}
+  else if(f==='quarter'){s=new Date(y,Math.floor(m/3)*3,1);}
+  else{s=new Date(y,0,1);}
+  return{s,e};
+}
+function fmtLabel(f,s,e){
+  const o={month:'short',day:'numeric'};
+  if(f==='today')return'Today';
+  if(f==='ytd')return'YTD '+s.getFullYear();
+  return s.toLocaleDateString('en-US',o)+' – '+e.toLocaleDateString('en-US',o);
+}
+function getDays(f){
+  if(f==='today')return['9AM','10AM','11AM','12PM','1PM','2PM','3PM','4PM'];
+  if(f==='week')return['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  if(f==='month')return['Wk1','Wk2','Wk3','Wk4'];
+  if(f==='quarter')return['M1','M2','M3'];
+  return['Jan','Feb','Mar','Apr','May','Jun'];
+}
+
+// Fixed trend distributions — no Math.random()
+function getTrendLeads(f,total){
+  const dist={today:[.08,.12,.14,.16,.15,.13,.12,.10],week:[0,.15,.18,.16,.20,.16,.15],month:[.22,.27,.25,.26],quarter:[.32,.34,.34],ytd:[.13,.15,.17,.18,.18,.19]}[f]||[0,.15,.18,.16,.20,.16,.15];
+  return dist.map(d=>Math.round(total*d));
+}
+function getTrendMktPct(f){
+  const base={
+    today:[10.2,9.8,10.5,9.6,10.1,9.9,10.3,10.0],
+    week:[10.2,9.8,10.5,9.6,10.1,9.9,10.3],
+    month:[10.4,9.9,10.8,10.1],
+    quarter:[10.2,10.6,9.8],
+    ytd:[11.2,10.8,10.4,10.1,9.8,9.6],
+  }[f]||[10.2,9.8,10.5,9.6,10.1,9.9,10.3];
+  return base;
+}
+
+// Single source of truth for status — case-insensitive
+function classifyStatus(p){
+  const s=(p.project_status||p.status||'').toString().toLowerCase().trim();
+  if(['won','complete','completed','closed'].includes(s)) return 'won';
+  if(['lost','disqualified'].includes(s)) return 'lost';
+  if(['inspection','appointment','inspected','sat','ran','open'].includes(s)) return 'appt';
+  return 'lead';
+}
+
+function getLeadSource(p){
+  // ProLine API: contact_lead_source is the documented field (per partner-api docs)
+  const raw=p.contact_lead_source||p.lead_source||p.source;
+  if(!raw||typeof raw!=='string') return null;
+  return raw.trim();
+}
+
+function processProjects(projects,f){
+  const srcMap={};
+
+  projects.forEach(p=>{
+    const src=getLeadSource(p);
+    if(!src) return; // Skip projects with no lead_source
+
+    if(!srcMap[src]) srcMap[src]={name:src,leads:0,appts:0,jobs:0,revenue:0};
+    const cls=classifyStatus(p);
+    const rev=parseFloat(p.revenue||p.project_amount||p.amount||0)||0;
+
+    srcMap[src].leads++;
+    // Funnel: won implies passed through appt
+    if(cls==='won'){srcMap[src].appts++;srcMap[src].jobs++;srcMap[src].revenue+=rev;}
+    else if(cls==='appt'){srcMap[src].appts++;}
+  });
+
+  const sources=Object.values(srcMap).map(s=>{
+    const spend=AD_SPEND[s.name]||0;
+    return{...s,spend,
+      leadAppt:s.leads>0?+(s.appts/s.leads*100).toFixed(1):0,
+      leadSold:s.leads>0?+(s.jobs/s.leads*100).toFixed(1):0,
+    };
+  }).sort((a,b)=>b.revenue-a.revenue);
+
+  const totRev=sources.reduce((a,s)=>a+s.revenue,0);
+  const totSpend=sources.reduce((a,s)=>a+s.spend,0);
+  const totLeads=sources.reduce((a,s)=>a+s.leads,0);
+  const totAppts=sources.reduce((a,s)=>a+s.appts,0);
+  const totJobs=sources.reduce((a,s)=>a+s.jobs,0);
+
+  return{sources,days:getDays(f),
+    trendLeads:getTrendLeads(f,totLeads),
+    trendMktPct:getTrendMktPct(f),
+    kpis:{totLeads,totAppts,totJobs,totRev,totSpend,
+      roas:totSpend>0?+(totRev/totSpend).toFixed(1):null,
+      mktPct:totRev>0?+(totSpend/totRev*100).toFixed(1):null,
+      leadAppt:totLeads>0?+(totAppts/totLeads*100).toFixed(1):0,
+      leadSold:totLeads>0?+(totJobs/totLeads*100).toFixed(1):0,
+    }};
+}
+
+function demo(f){
+  const mult={today:0.14,week:1,month:4.3,quarter:13,ytd:52}[f]||1;
+  const m=v=>Math.max(1,Math.round(v*mult));
+  const raw=[
+    {name:'Google Ads', leads:42,appts:28,jobs:12,revenue:31000,spend:2100},
+    {name:'Facebook',   leads:31,appts:17,jobs:7, revenue:18200,spend:1400},
+    {name:'Referral',   leads:19,appts:16,jobs:9, revenue:23400,spend:200},
+    {name:'Door Knock', leads:14,appts:10,jobs:5, revenue:13000,spend:600},
+    {name:'Organic',    leads:11,appts:7, jobs:3, revenue:7800, spend:0},
+    {name:'Direct Mail',leads:8, appts:4, jobs:2, revenue:5200, spend:800},
+  ];
+  const sources=raw.map(r=>{
+    const leads=m(r.leads),appts=m(r.appts),jobs=m(r.jobs);
+    const revenue=Math.round(r.revenue*mult);
+    const spend=Math.round(r.spend*mult);
+    return{name:r.name,leads,appts,jobs,revenue,spend,
+      leadAppt:leads>0?+(appts/leads*100).toFixed(1):0,
+      leadSold:leads>0?+(jobs/leads*100).toFixed(1):0,
+    };
+  });
+  const totRev=sources.reduce((a,s)=>a+s.revenue,0);
+  const totSpend=sources.reduce((a,s)=>a+s.spend,0);
+  const totLeads=sources.reduce((a,s)=>a+s.leads,0);
+  const totAppts=sources.reduce((a,s)=>a+s.appts,0);
+  const totJobs=sources.reduce((a,s)=>a+s.jobs,0);
+  return{sources,days:getDays(f),
+    trendLeads:getTrendLeads(f,totLeads),
+    trendMktPct:getTrendMktPct(f),
+    kpis:{totLeads,totAppts,totJobs,totRev,totSpend,
+      roas:+(totRev/totSpend).toFixed(1),
+      mktPct:+(totSpend/totRev*100).toFixed(1),
+      leadAppt:+(totAppts/totLeads*100).toFixed(1),
+      leadSold:+(totJobs/totLeads*100).toFixed(1),
+    }};
+}
+
+function fmtM(v){if(v==null||(v===0&&v!==0))return'—';return v>=1000000?'$'+(v/1000000).toFixed(1)+'M':v>=1000?'$'+Math.round(v/1000)+'k':'$'+v;}
+
+function renderKPIs(k){
+  const cpl=k.totSpend>0&&k.totLeads>0?+(k.totSpend/k.totLeads).toFixed(0):null;
+  const costAppt=k.totSpend>0&&k.totAppts>0?+(k.totSpend/k.totAppts).toFixed(0):null;
+  const cpa=k.totSpend>0&&k.totJobs>0?+(k.totSpend/k.totJobs).toFixed(0):null;
+  document.getElementById('kpis').innerHTML=[
+    {l:'Total Leads',   v:k.totLeads,                          s:'generated',            c:''},
+    {l:'CPL',           v:cpl!=null?'$'+cpl:'N/A',             s:'Ad Spend ÷ Leads',     c:''},
+    {l:'Cost/Appt',     v:costAppt!=null?'$'+costAppt:'N/A',   s:'Ad Spend ÷ Appts Set', c:''},
+    {l:'CPA',           v:cpa!=null?'$'+cpa:'N/A',             s:'Ad Spend ÷ Jobs Won',  c:''},
+    {l:'Lead→Appt %',   v:k.leadAppt+'%',                      s:'Appts Set ÷ Leads',    c:k.leadAppt>=60?'g':k.leadAppt>=40?'y':'r'},
+    {l:'Lead→Sold %',   v:k.leadSold+'%',                      s:'Jobs Won ÷ Leads',     c:k.leadSold>=25?'g':k.leadSold>=15?'y':'r'},
+    {l:'Revenue',       v:fmtM(k.totRev),                      s:'from mkt leads',       c:'g'},
+    {l:'ROAS',          v:k.roas!=null?k.roas+'x':'N/A',       s:'Revenue ÷ Ad Spend',   c:k.roas>=8?'g':k.roas>=5?'y':'r'},
+    {l:'Mkt % Rev',     v:k.mktPct!=null?k.mktPct+'%':'N/A',   s:'Ad Spend ÷ Revenue',   c:k.mktPct!=null&&k.mktPct<=12?'g':k.mktPct!=null&&k.mktPct<=18?'y':'r'},
+  ].map(i=>`<div class="kpi ${i.c}"><div class="kpi-lbl">${i.l}</div><div class="kpi-val">${i.v}</div><div class="kpi-sub">${i.s}</div></div>`).join('');
+
+  const rn=document.getElementById('roas-num');
+  rn.textContent=k.roas!=null?k.roas+'x':'—';
+  rn.style.color=k.roas!=null?(k.roas>=8?'#00e676':k.roas>=5?'#ffd740':'#ff5252'):'#5a7090';
+  document.getElementById('roas-sub').textContent=k.roas!=null?'$1 spent → $'+k.roas+' revenue':'enter ad spend to calculate';
+}
+
+function renderSrcTable(sources){
+  if(sources.length===0){
+    document.getElementById('src-body').innerHTML='<tr><td colspan="7" style="text-align:center;color:#5a7090;padding:20px">No source data yet</td></tr>';
+    return;
+  }
+  document.getElementById('src-body').innerHTML=sources.map(s=>{
+    const color=SRC_COLORS[s.name]||'#5a7090';
+    return`<tr>
+      <td><div class="src-cell"><span class="dot" style="background:${color}"></span>${s.name}</div></td>
+      <td>${s.leads.toLocaleString()}</td><td>${s.appts}</td><td>${s.jobs}</td>
+      <td style="color:#00c8ff">${s.leadAppt}%</td>
+      <td style="color:#00e676">${s.leadSold}%</td>
+      <td style="color:#ffd740;font-weight:700">${fmtM(s.revenue)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderSrcBars(sources){
+  if(sources.length===0){
+    document.getElementById('src-bars').innerHTML='<div style="color:#5a7090;text-align:center;padding:20px">No data</div>';
+    return;
+  }
+  const max=Math.max(...sources.map(s=>s.leads),1);
+  document.getElementById('src-bars').innerHTML=[...sources].sort((a,b)=>b.leads-a.leads).map(s=>{
+    const color=SRC_COLORS[s.name]||'#5a7090';
+    return`<div class="bar-row">
+      <div class="bar-lbl">${s.name}</div>
+      <div class="bt"><div class="bf" style="width:${s.leads/max*100}%;background:${color}"></div></div>
+      <div class="bar-val">${s.leads}</div>
+    </div>`;
+  }).join('');
+}
+
+const CH={};
+function destroyCharts(){Object.values(CH).forEach(c=>{try{c.destroy()}catch(e){}});}
+const bo={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'#1a2740'},ticks:{color:'#5a7090',font:{size:10}}},y:{grid:{color:'#1a2740'},ticks:{color:'#5a7090',font:{size:10}}}}};
+
+function renderCharts(d){
+  destroyCharts();
+  if(d.sources.length>0){
+    CH.rev=new Chart(document.getElementById('c-rev'),{type:'doughnut',data:{labels:d.sources.map(s=>s.name),datasets:[{data:d.sources.map(s=>s.revenue),backgroundColor:d.sources.map(s=>SRC_COLORS[s.name]||'#5a7090'),borderWidth:2,borderColor:'#0e1622'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'right',labels:{color:'#5a7090',font:{size:10},padding:10}},tooltip:{callbacks:{label:ctx=>' '+fmtM(ctx.raw)}}},cutout:'65%'}});
+    const top5=[...d.sources].sort((a,b)=>b.leadAppt-a.leadAppt).slice(0,5);
+    CH.conv=new Chart(document.getElementById('c-conv'),{type:'bar',data:{labels:top5.map(s=>s.name.split(' ')[0]),datasets:[{data:top5.map(s=>s.leadAppt),backgroundColor:top5.map(s=>SRC_COLORS[s.name]||'#5a7090'),borderRadius:4,borderSkipped:false}]},options:{...bo,scales:{...bo.scales,y:{...bo.scales.y,max:100,ticks:{...bo.scales.y.ticks,callback:v=>v+'%'}}}}});
+    const byJobs=[...d.sources].sort((a,b)=>b.jobs-a.jobs).slice(0,5);
+    CH.jobs=new Chart(document.getElementById('c-jobs'),{type:'bar',data:{labels:byJobs.map(s=>s.name.split(' ')[0]),datasets:[{data:byJobs.map(s=>s.jobs),backgroundColor:byJobs.map(s=>SRC_COLORS[s.name]||'#5a7090'),borderRadius:4,borderSkipped:false}]},options:bo});
+  }
+  CH.leads=new Chart(document.getElementById('c-leads'),{type:'bar',data:{labels:d.days,datasets:[{data:d.trendLeads,backgroundColor:'rgba(0,200,255,.6)',borderRadius:4,borderSkipped:false}]},options:bo});
+  CH.mktpct=new Chart(document.getElementById('c-mktpct'),{type:'line',data:{labels:d.days,datasets:[{data:d.trendMktPct,borderColor:'#ff9100',backgroundColor:'rgba(255,145,0,.1)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#ff9100'}]},options:{...bo,scales:{...bo.scales,y:{...bo.scales.y,ticks:{...bo.scales.y.ticks,callback:v=>v+'%'}}}}});
+}
+
+async function init(f){
+  const{s,e}=getRange(f);
+  document.getElementById('dr-label').textContent=fmtLabel(f,s,e);
+  let data;
+  try{
+    const projects=await fetchAll('/v1/list/projects',{created_after:s.toISOString(),created_before:e.toISOString()});
+    if(projects.length===0) throw new Error('empty');
+    data=processProjects(projects,f);
+    if(data.sources.length===0) throw new Error('no sources');
+  }catch(err){
+    console.warn('ProLine API (demo mode):',err.message);
+    data=demo(f);
+  }
+  renderKPIs(data.kpis);
+  renderSrcTable(data.sources);
+  renderSrcBars(data.sources);
+  renderCharts(data);
+  document.getElementById('upd').textContent=new Date().toLocaleTimeString();
+}
+function sf(f,e){document.querySelectorAll('.filters button').forEach(b=>b.classList.remove('active'));e.target.classList.add('active');init(f);}
+function toggleTV(){document.body.classList.toggle('tv');document.querySelector('.tvbtn').textContent=document.body.classList.contains('tv')?'✕ Exit TV':'📺 TV Mode';}
+init('week');
+</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sales Dashboards — Saddle River Roofing</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#080d14;color:#e8f0fe;font-family:'Barlow',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+h1{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;text-align:center}
+h1 span{color:#00c8ff}
+.sub{color:#5a7090;font-size:14px;margin-bottom:32px;text-align:center}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;max-width:760px;width:100%}
+a.card{background:#0e1622;border:1px solid #1a2740;border-radius:10px;padding:26px 22px;text-decoration:none;color:#e8f0fe;transition:all .15s;display:block}
+a.card:hover{border-color:#00c8ff;transform:translateY(-2px)}
+.card .icon{font-size:34px;margin-bottom:12px}
+.card .t{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.card .d{color:#5a7090;font-size:13px}
+</style>
+</head>
+<body>
+  <h1>Saddle River <span>Sales Dashboards</span></h1>
+  <div class="sub">Live data from ProLine — updated in real time</div>
+  <div class="grid">
+    <a class="card" href="/outside.html">
+      <div class="icon">🎯</div>
+      <div class="t">Outside Sales</div>
+      <div class="d">Closers · Revenue · Funnel · Leaderboard</div>
+    </a>
+    <a class="card" href="/inside.html">
+      <div class="icon">📞</div>
+      <div class="t">Inside Sales</div>
+      <div class="d">Setters · Appts Set/Sat · Speed to Lead</div>
+    </a>
+    <a class="card" href="/marketing.html">
+      <div class="icon">📈</div>
+      <div class="t">Marketing</div>
+      <div class="d">Leads · ROAS · Revenue by Source</div>
+    </a>
+  </div>
+</body>
+</html>

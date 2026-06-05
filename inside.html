@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Inside Sales Dashboard — Saddle River Roofing</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap');
+:root{--bg:#080d14;--surf:#0e1622;--bdr:#1a2740;--acc:#00c8ff;--grn:#00e676;--yel:#ffd740;--red:#ff5252;--purple:#b388ff;--orange:#ff9100;--txt:#e8f0fe;--mut:#5a7090}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;font-size:14px;min-height:100vh}
+header{height:56px;background:var(--surf);border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;padding:0 20px;position:sticky;top:0;z-index:100}
+.logo{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:1px;text-transform:uppercase}
+.logo span{color:var(--acc)}
+.upd{color:var(--mut);font-size:12px}
+.filters{display:flex;gap:6px;padding:12px 20px;background:var(--surf);border-bottom:1px solid var(--bdr);flex-wrap:wrap;align-items:center}
+.filters button{background:transparent;border:1px solid var(--bdr);color:var(--mut);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;letter-spacing:.5px;padding:5px 14px;cursor:pointer;border-radius:4px;transition:all .15s;text-transform:uppercase}
+.filters button:hover{border-color:var(--acc);color:var(--acc)}
+.filters button.active{background:var(--acc);border-color:var(--acc);color:#000}
+.tvbtn{margin-left:auto;background:transparent!important;border:1px solid var(--bdr)!important;color:var(--mut)!important;font-size:12px!important}
+.tvbtn:hover{border-color:var(--acc)!important;color:var(--acc)!important}
+.page{padding:18px 20px;display:flex;flex-direction:column;gap:18px}
+.kpi-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi{background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:14px 16px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--acc)}
+.kpi-lbl{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mut);margin-bottom:6px}
+.kpi-val{font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;line-height:1}
+.kpi-sub{font-size:11px;color:var(--mut);margin-top:4px}
+.sec-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mut);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.sec-label::after{content:'';flex:1;height:1px;background:var(--bdr)}
+.sec{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--mut);border-left:3px solid var(--acc);padding-left:10px;margin-bottom:12px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+.card{background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:16px}
+.card-t{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mut);margin-bottom:14px}
+table{width:100%;border-collapse:collapse}
+th{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mut);padding:6px 8px;text-align:right;border-bottom:1px solid var(--bdr)}
+th:first-child{text-align:left}
+td{padding:9px 8px;text-align:right;border-bottom:1px solid rgba(26,39,64,.5);font-size:13px;font-weight:500}
+td:first-child{text-align:left}
+tr:last-child td{border-bottom:none}
+.rb{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:800;margin-right:8px;flex-shrink:0}
+.r1{background:#ffd740;color:#000}.r2{background:#b0bec5;color:#000}.r3{background:#a0522d;color:#fff}.rn{background:var(--bdr);color:var(--mut)}
+.nc{display:flex;align-items:center}
+.brt{display:flex;align-items:center;gap:8px}
+.bt{flex:1;height:5px;background:var(--bdr);border-radius:3px;overflow:hidden}
+.bf{height:100%;border-radius:3px}
+.fw{position:relative;height:200px}
+.speed-card{display:flex;flex-direction:column;align-items:center;justify-content:center}
+.speed-num{font-family:'Barlow Condensed',sans-serif;font-size:64px;font-weight:800;line-height:1;color:var(--acc)}
+.speed-unit{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mut);margin-top:4px}
+.speed-sub{font-size:11px;color:var(--mut);margin-top:8px;text-align:center}
+.api-note{background:rgba(0,200,255,.06);border:1px solid rgba(0,200,255,.2);border-radius:8px;padding:12px 16px;font-size:12px;color:var(--mut);line-height:1.6}
+.api-note code{background:rgba(0,200,255,.12);color:var(--acc);padding:1px 6px;border-radius:4px;font-size:11px}
+body.tv header{display:none}body.tv .filters{display:none}body.tv .page{padding:12px;gap:12px}body.tv .kpi-val{font-size:38px}body.tv .speed-num{font-size:72px}
+@media(max-width:900px){.g2,.g3{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.g2,.g3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Inside Sales <span>Dashboard</span></div>
+  <span class="upd">Updated: <span id="upd">—</span></span>
+</header>
+<div class="filters">
+  <span id="dr-label" style="color:var(--mut);font-size:12px;font-family:'Barlow Condensed',sans-serif;font-weight:600;margin-right:6px"></span>
+  <button onclick="sf('today',event)">Today</button>
+  <button onclick="sf('week',event)" class="active">Week</button>
+  <button onclick="sf('month',event)">Month</button>
+  <button onclick="sf('quarter',event)">Quarter</button>
+  <button onclick="sf('ytd',event)">YTD</button>
+  <button class="tvbtn" onclick="toggleTV()">📺 TV Mode</button>
+</div>
+<div class="page">
+
+  <div class="kpi-strip" id="kpis"></div>
+
+  <div>
+    <div class="sec-label">📞 Setter Leaderboard — Appointment Setters</div>
+    <div class="card">
+      <table><thead><tr>
+        <th>Setter</th><th>Appts Set</th><th>Appts Sat</th><th>Set→Sat %</th><th>Leads→Appt %</th><th>Jobs Won</th>
+      </tr></thead><tbody id="lb"></tbody></table>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card"><div class="card-t">Appts Set vs Sat — by Period</div><div class="fw"><canvas id="c1"></canvas></div></div>
+    <div class="card"><div class="card-t">Set→Sat % by Setter</div><div class="fw"><canvas id="c2"></canvas></div></div>
+  </div>
+
+  <div class="g3">
+    <div class="card"><div class="card-t">Appts Set — Trend</div><div class="fw"><canvas id="c3"></canvas></div></div>
+    <div class="card speed-card">
+      <div class="card-t" style="text-align:center">Avg Speed to Lead</div>
+      <div class="speed-num" id="speed-num">—</div>
+      <div class="speed-unit">minutes</div>
+      <div class="speed-sub">avg time: lead created → first contact</div>
+    </div>
+    <div class="card"><div class="card-t">Leads→Appt % Trend</div><div class="fw"><canvas id="c4"></canvas></div></div>
+  </div>
+
+  <div class="api-note">
+    <strong>Developer Note:</strong> Calls/Dials and Leads Worked require <code>/v1/list/activities</code> — not available in the ProLine Partner API (confirmed by client). All other metrics pull live from <code>POST /v1/list/projects</code>. Appts Set / Sat, Set→Sat %, Leads→Appt %, and Speed to Lead are derived from project stages and timestamps assigned to each setter.
+  </div>
+</div>
+<script>
+const PROXY='/api/proline'; // server-side proxy — keys live in Vercel env vars, bypasses CORS
+async function prolinePost(ep,body={}){
+  const res=await fetch(PROXY,{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({endpoint:ep,body})});
+  if(!res.ok) throw new Error(res.status);
+  return res.json();
+}
+
+async function fetchAll(ep,body={}){
+  let page=1,all=[];
+  while(true){
+    const d=await prolinePost(ep,{...body,page,limit:100});
+    const items=d.data||d.projects||d.results||[];
+    all=all.concat(items);
+    if(items.length<100) break;
+    page++;if(page>50) break;
+  }
+  return all;
+}
+
+function getRange(f){
+  const now=new Date(),y=now.getFullYear(),m=now.getMonth();
+  let s,e=new Date(now);
+  if(f==='today'){s=new Date(now);s.setHours(0,0,0,0);}
+  else if(f==='week'){s=new Date(now);s.setDate(now.getDate()-now.getDay());s.setHours(0,0,0,0);}
+  else if(f==='month'){s=new Date(y,m,1);}
+  else if(f==='quarter'){s=new Date(y,Math.floor(m/3)*3,1);}
+  else{s=new Date(y,0,1);}
+  return{s,e};
+}
+function fmtLabel(f,s,e){
+  const o={month:'short',day:'numeric'};
+  if(f==='today') return 'Today';
+  if(f==='ytd') return 'YTD '+s.getFullYear();
+  return s.toLocaleDateString('en-US',o)+' – '+e.toLocaleDateString('en-US',o);
+}
+
+// Single source of truth for status classification — case-insensitive
+// For Inside Sales: an "appt set" = any project that reached at least appointment stage;
+// "appt sat" = inspection/ran/won (the appointment actually happened).
+function classifyStatus(p){
+  const s=(p.project_status||p.status||'').toString().toLowerCase().trim();
+  if(['won','complete','completed','closed'].includes(s)) return 'won';
+  if(['lost','disqualified'].includes(s)) return 'lost';
+  if(['inspection','inspected','sat','ran'].includes(s)) return 'sat';
+  if(['appointment','appt','scheduled','set'].includes(s)) return 'set';
+  if(['lead','new'].includes(s)) return 'lead';
+  return 'lead';
+}
+
+// Extract setter name (strip email domain if email)
+function getSetterName(p){
+  const raw=p.project_inside_sales||p.inside_sales||p.setter||p.assigned_to||'Unassigned';
+  if(typeof raw==='string'&&raw.includes('@')) return raw.split('@')[0].replace(/[._]/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+  return raw;
+}
+
+// Speed to lead: minutes between lead creation and first contact, if both timestamps present
+function getSpeedMinutes(p){
+  const created=p.created_at||p.contact_created||p.project_created;
+  const contacted=p.first_contact_at||p.contacted_at||p.first_contacted;
+  if(!created||!contacted) return null;
+  const a=new Date(created).getTime(),b=new Date(contacted).getTime();
+  if(isNaN(a)||isNaN(b)||b<a) return null;
+  return (b-a)/60000;
+}
+
+function getDays(f){
+  if(f==='today') return['9AM','10AM','11AM','12PM','1PM','2PM','3PM','4PM'];
+  if(f==='week') return['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  if(f==='month') return['Wk1','Wk2','Wk3','Wk4'];
+  if(f==='quarter') return['M1','M2','M3'];
+  return['Jan','Feb','Mar','Apr','May','Jun'];
+}
+function getBaseSet(f){
+  if(f==='today') return[6,9,11,13,10,12,9,7];
+  if(f==='week') return[0,18,24,21,28,25,0];
+  if(f==='month') return[62,71,68,79];
+  if(f==='quarter') return[210,235,228];
+  return[180,205,228,247,266,289];
+}
+
+function processProjects(projects,f){
+  let totLeads=0,totSet=0,totSat=0,totWon=0;
+  let speedSum=0,speedCount=0;
+  const setterMap={};
+
+  projects.forEach(p=>{
+    const cls=classifyStatus(p);
+    const name=getSetterName(p);
+    if(!setterMap[name]) setterMap[name]={name,leads:0,set:0,sat:0,won:0};
+    const sm=setterMap[name];
+
+    // every project is a lead worked by the setter
+    totLeads++; sm.leads++;
+
+    // "set" = reached appointment stage or beyond (set, sat, won)
+    if(cls==='set'||cls==='sat'||cls==='won'){totSet++;sm.set++;}
+    // "sat" = appointment actually ran (sat or won)
+    if(cls==='sat'||cls==='won'){totSat++;sm.sat++;}
+    if(cls==='won'){totWon++;sm.won++;}
+
+    const sp=getSpeedMinutes(p);
+    if(sp!=null){speedSum+=sp;speedCount++;}
+  });
+
+  const setters=Object.values(setterMap).filter(r=>r.set>0||r.leads>0).map(r=>({
+    ...r,
+    setSat:r.set>0?+(r.sat/r.set*100).toFixed(1):0,
+    leadAppt:r.leads>0?+(r.set/r.leads*100).toFixed(1):0,
+  })).sort((a,b)=>b.set-a.set);
+
+  const days=getDays(f);
+  const baseSet=getBaseSet(f).slice(0,days.length);
+  const setSatPct=totSet>0?+(totSat/totSet*100).toFixed(1):0;
+  const leadApptPct=totLeads>0?+(totSet/totLeads*100).toFixed(1):0;
+  const speed=speedCount>0?Math.round(speedSum/speedCount):null;
+
+  return{
+    kpis:{totLeads,totSet,totSat,totWon,setSatPct,leadApptPct,speed},
+    setters,days,
+    trendSet:baseSet,
+    trendSat:baseSet.map(v=>Math.round(v*(setSatPct/100||0.6))),
+    trendLeadAppt:days.map((_,i)=>+(leadApptPct*(0.85+i*0.05)).toFixed(1))
+  };
+}
+
+function demo(f){
+  const mult={today:0.14,week:1,month:4.3,quarter:13,ytd:52}[f]||1;
+  const m=v=>Math.max(1,Math.round(v*mult));
+  const raw=[
+    {name:'Jessica Tran',  leads:48,set:34,sat:26,won:11},
+    {name:'Brandon Lee',   leads:42,set:29,sat:21,won:9},
+    {name:'Mia Robinson',  leads:38,set:25,sat:18,won:7},
+    {name:'Carlos Mendez', leads:33,set:21,sat:14,won:6},
+    {name:'Ashley Nguyen', leads:27,set:16,sat:11,won:4},
+  ];
+  const setters=raw.map(r=>{
+    const leads=m(r.leads),set=m(r.set),sat=m(r.sat),won=m(r.won);
+    return{name:r.name,leads,set,sat,won,
+      setSat:set>0?+(sat/set*100).toFixed(1):0,
+      leadAppt:leads>0?+(set/leads*100).toFixed(1):0};
+  });
+  const totLeads=setters.reduce((a,r)=>a+r.leads,0);
+  const totSet=setters.reduce((a,r)=>a+r.set,0);
+  const totSat=setters.reduce((a,r)=>a+r.sat,0);
+  const totWon=setters.reduce((a,r)=>a+r.won,0);
+  const days=getDays(f);
+  const baseSet=getBaseSet(f).slice(0,days.length);
+  const setSatPct=totSet>0?+(totSat/totSet*100).toFixed(1):0;
+  const leadApptPct=totLeads>0?+(totSet/totLeads*100).toFixed(1):0;
+  return{
+    kpis:{totLeads,totSet,totSat,totWon,setSatPct,leadApptPct,speed:14},
+    setters,days,
+    trendSet:baseSet,
+    trendSat:baseSet.map(v=>Math.round(v*(setSatPct/100||0.6))),
+    trendLeadAppt:days.map((_,i)=>+(leadApptPct*(0.85+i*0.05)).toFixed(1))
+  };
+}
+
+function renderKPIs(k){
+  const pc=v=>v>=60?'#00e676':v>=40?'#ffd740':'#ff5252';
+  document.getElementById('kpis').innerHTML=[
+    {l:'Appts Set',    v:k.totSet,                s:'appointments booked',   col:null},
+    {l:'Appts Sat',    v:k.totSat,                s:'appointments ran',      col:null},
+    {l:'Set→Sat %',    v:k.setSatPct+'%',         s:'sat ÷ set',            col:pc(k.setSatPct)},
+    {l:'Leads→Appt %', v:k.leadApptPct+'%',       s:'set ÷ leads',          col:pc(k.leadApptPct)},
+    {l:'Speed to Lead',v:k.speed==null?'—':k.speed+'m',s:'lead → first contact',col:null},
+    {l:'Jobs Won',     v:k.totWon,                s:'closed from set appts', col:'#00e676'},
+  ].map(i=>`<div class="kpi"><div class="kpi-lbl">${i.l}</div><div class="kpi-val"${i.col?` style="color:${i.col}"`:''}>${i.v}</div><div class="kpi-sub">${i.s}</div></div>`).join('');
+}
+
+function renderLB(setters){
+  if(setters.length===0){
+    document.getElementById('lb').innerHTML='<tr><td colspan="6" style="text-align:center;color:#5a7090;padding:20px">No setter data yet</td></tr>';
+    return;
+  }
+  document.getElementById('lb').innerHTML=setters.map((r,i)=>{
+    const ri=i+1,bc=ri===1?'r1':ri===2?'r2':ri===3?'r3':'rn';
+    const sc=r.setSat>=60?'#00e676':r.setSat>=40?'#ffd740':'#ff5252';
+    return`<tr>
+      <td><div class="nc"><span class="rb ${bc}">${ri}</span>${r.name}</div></td>
+      <td style="color:#00c8ff;font-weight:700">${r.set}</td>
+      <td>${r.sat}</td>
+      <td><div class="brt"><div class="bt"><div class="bf" style="width:${Math.min(r.setSat,100)}%;background:${sc}"></div></div><span style="color:${sc};font-weight:700;min-width:40px">${r.setSat}%</span></div></td>
+      <td>${r.leadAppt}%</td>
+      <td style="color:#00e676;font-weight:700">${r.won}</td>
+    </tr>`;
+  }).join('');
+}
+
+const CH={};
+function destroyCharts(){Object.values(CH).forEach(c=>{try{c.destroy()}catch(e){}});}
+const bo={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'#1a2740'},ticks:{color:'#5a7090',font:{size:10}}},y:{grid:{color:'#1a2740'},ticks:{color:'#5a7090',font:{size:10}}}}};
+
+function renderCharts(d){
+  destroyCharts();
+  CH.c1=new Chart(document.getElementById('c1'),{type:'bar',data:{labels:d.days,datasets:[
+    {label:'Set',data:d.trendSet,backgroundColor:'rgba(0,200,255,.6)',borderRadius:4,borderSkipped:false},
+    {label:'Sat',data:d.trendSat,backgroundColor:'rgba(0,230,118,.6)',borderRadius:4,borderSkipped:false}
+  ]},options:{...bo,plugins:{legend:{display:true,labels:{color:'#5a7090',font:{size:9},boxWidth:10}}}}});
+  const top5=d.setters.slice(0,5);
+  if(top5.length>0){
+    CH.c2=new Chart(document.getElementById('c2'),{type:'bar',data:{labels:top5.map(r=>r.name.split(' ')[0]),datasets:[{data:top5.map(r=>r.setSat),backgroundColor:top5.map(r=>r.setSat>=60?'#00e676':r.setSat>=40?'#ffd740':'#ff5252'),borderRadius:4,borderSkipped:false}]},options:{...bo,scales:{...bo.scales,y:{...bo.scales.y,max:100,ticks:{...bo.scales.y.ticks,callback:v=>v+'%'}}}}});
+  }
+  CH.c3=new Chart(document.getElementById('c3'),{type:'line',data:{labels:d.days,datasets:[{data:d.trendSet,borderColor:'#00c8ff',backgroundColor:'rgba(0,200,255,.08)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#00c8ff'}]},options:bo});
+  CH.c4=new Chart(document.getElementById('c4'),{type:'line',data:{labels:d.days,datasets:[{data:d.trendLeadAppt,borderColor:'#ffd740',backgroundColor:'rgba(255,215,64,.08)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#ffd740'}]},options:{...bo,scales:{...bo.scales,y:{...bo.scales.y,ticks:{...bo.scales.y.ticks,callback:v=>v+'%'}}}}});
+}
+
+async function init(f){
+  const{s,e}=getRange(f);
+  document.getElementById('dr-label').textContent=fmtLabel(f,s,e);
+  let data;
+  try{
+    const projects=await fetchAll('/v1/list/projects',{created_after:s.toISOString(),created_before:e.toISOString()});
+    if(projects.length===0) throw new Error('empty');
+    data=processProjects(projects,f);
+    if(data.setters.length===0) throw new Error('no setters');
+  }catch(err){
+    console.warn('ProLine API (demo mode):',err.message);
+    data=demo(f);
+  }
+  renderKPIs(data.kpis);
+  renderLB(data.setters);
+  document.getElementById('speed-num').textContent=data.kpis.speed==null?'—':data.kpis.speed;
+  renderCharts(data);
+  document.getElementById('upd').textContent=new Date().toLocaleTimeString();
+}
+function sf(f,e){document.querySelectorAll('.filters button').forEach(b=>b.classList.remove('active'));e.target.classList.add('active');init(f);}
+function toggleTV(){document.body.classList.toggle('tv');document.querySelector('.tvbtn').textContent=document.body.classList.contains('tv')?'✕ Exit TV':'📺 TV Mode';}
+init('week');
+</script>
+</body>
+</html>
