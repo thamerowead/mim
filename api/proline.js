@@ -27,7 +27,8 @@ async function fetchPage(body, headers, attempt) {
   }
 
   let json = {};
-  try { json = await res.json(); } catch (e) { json = {}; }
+  let raw = '';
+  try { raw = await res.text(); json = JSON.parse(raw); } catch (e) { json = {}; }
 
   let results = [];
   if (Array.isArray(json)) {
@@ -39,7 +40,7 @@ async function fetchPage(body, headers, attempt) {
   }
 
   const total = (json && typeof json.total === 'number') ? json.total : results.length;
-  return { status: res.status, results: results, total: total, rateLimited: false };
+  return { status: res.status, results: results, total: total, rateLimited: false, raw: raw };
 }
 
 module.exports = async function handler(req, res) {
@@ -75,12 +76,13 @@ module.exports = async function handler(req, res) {
   let all = [];
   let lastStatus = 200;
   let rateLimited = false;
+  let lastRaw = '';
   const MAX_PAGES = 50; // safety cap (5000 projects)
 
   while (page <= MAX_PAGES) {
-    // ProLine proxy requires the `endpoint` field in the body.
+    // The endpoint is already in PROLINE_URL. ProLine expects ONLY
+    // pagination + date filters in the body, not an `endpoint` field.
     const body = {
-      endpoint: '/v1/list/projects',
       page: page,
       limit: LIMIT
     };
@@ -89,6 +91,7 @@ module.exports = async function handler(req, res) {
 
     const pageResult = await fetchPage(body, headers, 0);
     lastStatus = pageResult.status;
+    if (pageResult.raw) lastRaw = pageResult.raw;
 
     if (pageResult.rateLimited) {
       rateLimited = true;
@@ -115,6 +118,7 @@ module.exports = async function handler(req, res) {
   res.setHeader('x-proline-count', String(all.length));
   res.setHeader('x-proline-pages', String(page));
   res.setHeader('x-proline-ratelimited', String(rateLimited));
+  res.setHeader('x-proline-raw', String(lastRaw).slice(0, 300));
 
   // Always return a plain array â the dashboards expect this directly.
   res.status(200).json(all);
