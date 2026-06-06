@@ -193,6 +193,7 @@ function processProjects(projects,f){
   let totLeads=0,totSet=0,totSat=0,totWon=0;
   let speedSum=0,speedCount=0;
   const setterMap={};
+const items=Array.isArray(d)?d:(d.data||d.projects||d.results||[]);
 
   projects.forEach(p=>{
     const cls=classifyStatus(p);
