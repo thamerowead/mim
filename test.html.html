@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProLine Field Test</title>
+<style>
+  body{font-family:-apple-system,system-ui,sans-serif;background:#0f0f0f;color:#e0e0e0;padding:16px;margin:0}
+  h2{color:#fff;font-size:18px;margin:18px 0 8px}
+  button{background:#e8825a;color:#fff;border:0;padding:14px 22px;border-radius:10px;font-size:16px;font-weight:600;width:100%;margin:10px 0}
+  button:active{opacity:.7}
+  .meta{font-size:13px;color:#9a9a9a;line-height:1.7;background:#1a1a1a;padding:10px;border-radius:8px;margin:8px 0}
+  pre{background:#1a1a1a;padding:12px;border-radius:8px;font-size:12px;line-height:1.6;white-space:pre-wrap;word-break:break-all;overflow-x:auto;border:1px solid #2a2a2a}
+  .keys{color:#7ec699}
+  .err{color:#e57373}
+  .ok{color:#7ec699;font-weight:700}
+</style>
+</head>
+<body>
+<h2>ProLine — Field Name Test</h2>
+<button onclick="run()">Run Test (مرة وحدة فقط)</button>
+<div id="status" class="meta">اضغط الزر مرة واحدة وانتظر النتيجة. يجرّب عدة أشكال تلقائياً.</div>
+
+<h2>الشكل اللي نجح</h2>
+<pre id="winner">—</pre>
+
+<h2>المشروع الأول — كامل</h2>
+<pre id="first">—</pre>
+
+<h2>أسماء كل الحقول (keys)</h2>
+<pre id="fieldlist" class="keys">—</pre>
+
+<script>
+// كل الأشكال المحتملة للطلب اللي يقبلها الـ proxy
+const VARIANTS = [
+  { label:"endpoint + dates flat",
+    body:{ endpoint:'/v1/list/projects', created_after:'2026-01-01', created_before:'2026-12-31', page:1, limit:25 } },
+  { label:"endpoint + body nested",
+    body:{ endpoint:'/v1/list/projects', body:{ created_after:'2026-01-01', created_before:'2026-12-31', page:1, limit:25 } } },
+  { label:"path instead of endpoint",
+    body:{ path:'/v1/list/projects', created_after:'2026-01-01', created_before:'2026-12-31', page:1, limit:25 } },
+  { label:"endpoint no leading slash",
+    body:{ endpoint:'v1/list/projects', created_after:'2026-01-01', created_before:'2026-12-31', page:1, limit:25 } },
+  { label:"endpoint + params nested",
+    body:{ endpoint:'/v1/list/projects', params:{ created_after:'2026-01-01', created_before:'2026-12-31', page:1, limit:25 } } },
+  { label:"dates only (no endpoint)",
+    body:{ created_after:'2026-01-01', created_before:'2026-12-31', page:1, limit:25 } }
+];
+
+function getItems(data){
+  if(Array.isArray(data)) return data;
+  if(!data || typeof data!=='object') return [];
+  return data.results||data.data||data.projects||[];
+}
+
+async function run(){
+  const s=document.getElementById('status');
+  const w=document.getElementById('winner');
+  const f=document.getElementById('first');
+  const fl=document.getElementById('fieldlist');
+  s.textContent='... جاري التجربة';
+  w.textContent='—'; f.textContent='—'; fl.textContent='—';
+
+  let log='';
+  for(let i=0;i<VARIANTS.length;i++){
+    const v=VARIANTS[i];
+    try{
+      const r=await fetch('/api/proline',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(v.body)
+      });
+      const text=await r.text();
+      let data; try{ data=JSON.parse(text); }catch(e){ data=null; }
+      const items=getItems(data);
+      log+=(i+1)+'. '+v.label+' → HTTP '+r.status+' | count '+items.length+'\n';
+
+      if(items.length>0){
+        // نجح! اطبع كل شي وأوقف
+        w.innerHTML='<span class="ok">✅ '+v.label+'</span>\n\nrequest body:\n'+JSON.stringify(v.body,null,2);
+        f.textContent=JSON.stringify(items[0],null,2);
+        fl.textContent=Object.keys(items[0]).join('\n');
+        s.innerHTML='<span class="ok">نجح الشكل رقم '+(i+1)+'</span>\n\n'+log;
+        return;
+      }
+      // لو طلع 429 وقف عشان ما نكرر
+      if(r.status===429 || (data && JSON.stringify(data).includes('429'))){
+        log+='   ⚠️ وصلنا 429 — نوقف هنا.\n';
+        break;
+      }
+      // انتظر شوي بين المحاولات عشان نخفف الضغط
+      await new Promise(res=>setTimeout(res,800));
+    }catch(err){
+      log+=(i+1)+'. '+v.label+' → خطأ: '+err.message+'\n';
+    }
+  }
+  s.innerHTML='<span class="err">ما نجح أي شكل برجوع بيانات.</span>\n\n'+log;
+  f.textContent='راجع السجل فوق — لو كلها 400، الـ proxy يبي اسم حقل مختلف. لو 429، انتظر دقيقة وأعد.';
+}
+</script>
+</body>
+</html>
