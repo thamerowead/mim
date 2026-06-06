@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inside Sales · Saddle River Roofing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0a0e14; --card:#121822; --line:#1f2a38;
+    --txt:#eef3f8; --mut:#8a99ab; --accent:#e8763a; --accent2:#3a9ae8;
+    --good:#37c98b; --warn:#e8b13a;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--txt);font-family:'Barlow Condensed',sans-serif;padding:28px 18px 60px;letter-spacing:.3px}
+  h1{font-size:46px;font-weight:800;line-height:1}
+  .sub{color:var(--mut);font-size:18px;font-weight:600;letter-spacing:3px;text-transform:uppercase;margin-top:4px}
+  .filters{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 8px}
+  .filters button{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:12px;padding:14px 22px;font-family:inherit;font-size:19px;font-weight:700;cursor:pointer;transition:.15s}
+  .filters button.active{background:var(--accent);color:#1a0e07;border-color:var(--accent)}
+  .tvbtn{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:12px;padding:14px 22px;font-family:inherit;font-size:19px;font-weight:700;cursor:pointer;margin:14px 0 4px}
+  .status{color:var(--mut);font-size:18px;font-weight:600;margin:18px 0 8px}
+  .status.live{color:var(--good)}
+  .status.err{color:var(--accent)}
+  .sec{color:var(--mut);font-size:20px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin:34px 0 14px}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px}
+  .kpi .label{color:var(--mut);font-size:17px;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+  .kpi .val{font-size:52px;font-weight:800;line-height:1.05;margin:6px 0 2px}
+  .kpi .hint{color:var(--mut);font-size:16px;font-weight:500}
+  .chartcard{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;margin-top:14px}
+  .chartcard h3{font-size:18px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mut);margin-bottom:14px}
+  .note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:12px;padding:16px 18px;color:var(--mut);font-size:17px;font-weight:500;margin-top:14px}
+  body.tv{padding:40px 50px}
+  body.tv h1{font-size:64px}
+  body.tv .kpi .val{font-size:72px}
+  body.tv .grid{grid-template-columns:repeat(4,1fr)}
+</style>
+</head>
+<body>
+  <h1>Inside Sales</h1>
+  <div class="sub">Saddle River Roofing · Appointment Setters</div>
+
+  <div class="filters" id="filters">
+    <button data-r="today">Today</button>
+    <button data-r="week">Week</button>
+    <button data-r="month">Month</button>
+    <button data-r="quarter">Quarter</button>
+    <button data-r="ytd" class="active">YTD</button>
+  </div>
+  <button class="tvbtn" id="tv">📺 TV Mode</button>
+
+  <div class="status" id="status">Loading live ProLine data…</div>
+
+  <div class="sec">Setting Performance</div>
+  <div class="grid">
+    <div class="kpi"><div class="label">Appts Set</div><div class="val" id="kSet">0</div><div class="hint">Inspections scheduled</div></div>
+    <div class="kpi"><div class="label">Appts Sat</div><div class="val" id="kSat">0</div><div class="hint">Inspections completed</div></div>
+    <div class="kpi"><div class="label">Set → Sat %</div><div class="val" id="kSS">0.0%</div><div class="hint">Sat ÷ Set</div></div>
+    <div class="kpi"><div class="label">Leads → Appt %</div><div class="val" id="kLA">0.0%</div><div class="hint">Set ÷ Leads</div></div>
+  </div>
+
+  <div class="sec">Speed</div>
+  <div class="grid">
+    <div class="kpi"><div class="label">Speed to Lead</div><div class="val" id="kSpeed">—</div><div class="hint">Avg lead → inspection (hrs)</div></div>
+    <div class="kpi"><div class="label">Total Leads</div><div class="val" id="kLeads">0</div><div class="hint">All projects in period</div></div>
+  </div>
+
+  <div class="chartcard"><h3>Set vs Sat by Month</h3><canvas id="chSet" height="120"></canvas></div>
+
+<script>
+var STATE={range:'ytd',projects:[]};
+var chSet=null;
+
+function getRange(r){
+  var now=new Date();var start;
+  if(r==='today'){start=new Date(now.getFullYear(),now.getMonth(),now.getDate());}
+  else if(r==='week'){var d=now.getDay();start=new Date(now.getFullYear(),now.getMonth(),now.getDate()-d);}
+  else if(r==='month'){start=new Date(now.getFullYear(),now.getMonth(),1);}
+  else if(r==='quarter'){var q=Math.floor(now.getMonth()/3)*3;start=new Date(now.getFullYear(),q,1);}
+  else{start=new Date(now.getFullYear(),0,1);}
+  return {after:start.toISOString(), before:new Date().toISOString()};
+}
+
+function getDate(p,keys){for(var i=0;i<keys.length;i++){if(p[keys[i]])return p[keys[i]];}return null;}
+
+async function fetchAll(){
+  var s=document.getElementById('status');
+  s.className='status'; s.textContent='Loading live ProLine data…';
+  var rng=getRange(STATE.range);
+  try{
+    var res=await fetch('/api/proline',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({created_after:rng.after,created_before:rng.before})});
+    var data=await res.json();
+    var items=Array.isArray(data)?data:(data.results||data.data||[]);
+    STATE.projects=items;
+    if(items.length===0){s.className='status';s.textContent='Live · 0 projects in this period';}
+    else{s.className='status live';s.textContent='Live · '+items.length+' projects loaded';}
+    render();
+  }catch(e){s.className='status err';s.textContent='Could not load live data: '+e.message;}
+}
+
+function render(){
+  var P=STATE.projects;
+  var leads=P.length, set=0, sat=0;
+  var speedSum=0, speedN=0;
+
+  for(var i=0;i<P.length;i++){
+    var p=P[i];
+    var lead=getDate(p,['project_status_date_lead']);
+    var inspect=getDate(p,['project_status_date_inspect']);
+    // "Set" = an inspection date exists (appointment scheduled)
+    if(inspect){
+      set++;
+      sat++; // ProLine records inspect date when the inspection happens
+      if(lead){
+        var hrs=(new Date(inspect)-new Date(lead))/36e5;
+        if(!isNaN(hrs)&&hrs>=0&&hrs<24*60){speedSum+=hrs;speedN++;}
+      }
+    }
+  }
+
+  var ss=set>0?(sat/set*100):0;
+  var la=leads>0?(set/leads*100):0;
+  var speed=speedN>0?(speedSum/speedN):null;
+
+  document.getElementById('kSet').textContent=set;
+  document.getElementById('kSat').textContent=sat;
+  document.getElementById('kSS').textContent=ss.toFixed(1)+'%';
+  document.getElementById('kLA').textContent=la.toFixed(1)+'%';
+  document.getElementById('kSpeed').textContent=speed===null?'—':speed.toFixed(1)+'h';
+  document.getElementById('kLeads').textContent=leads;
+
+  drawSet(P);
+}
+
+function drawSet(P){
+  var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var setM=new Array(12).fill(0), satM=new Array(12).fill(0);
+  for(var i=0;i<P.length;i++){
+    var inspect=getDate(P[i],['project_status_date_inspect']);
+    if(inspect){var d=new Date(inspect);if(!isNaN(d.getMonth())){setM[d.getMonth()]++;satM[d.getMonth()]++;}}
+  }
+  var ctx=document.getElementById('chSet');
+  if(chSet)chSet.destroy();
+  chSet=new Chart(ctx,{type:'bar',data:{labels:months,datasets:[
+    {label:'Set',data:setM,backgroundColor:'#3a9ae8',borderRadius:6},
+    {label:'Sat',data:satM,backgroundColor:'#37c98b',borderRadius:6}]},
+    options:{plugins:{legend:{labels:{color:'#8a99ab'}}},scales:{
+      x:{ticks:{color:'#8a99ab',font:{size:13}},grid:{display:false}},
+      y:{ticks:{color:'#8a99ab'},grid:{color:'#1f2a38'}}}}});
+}
+
+document.getElementById('filters').addEventListener('click',function(e){
+  if(e.target.tagName!=='BUTTON')return;
+  var btns=document.querySelectorAll('#filters button');
+  for(var i=0;i<btns.length;i++)btns[i].classList.remove('active');
+  e.target.classList.add('active');
+  STATE.range=e.target.getAttribute('data-r');
+  fetchAll();
+});
+document.getElementById('tv').addEventListener('click',function(){document.body.classList.toggle('tv');});
+
+fetchAll();
+</script>
+</body>
+</html>
