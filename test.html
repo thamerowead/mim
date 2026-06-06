@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>ProLine API Test</title>
+<style>
+body{background:#080d14;color:#cfe;font-family:monospace;padding:16px;font-size:14px;line-height:1.5}
+h2{color:#00c8ff}
+.box{background:#0e1622;border:1px solid #1a2740;border-radius:8px;padding:12px;margin:10px 0;white-space:pre-wrap;word-break:break-all}
+.ok{color:#00e676}.err{color:#ff5252}.warn{color:#ffd740}
+button{background:#00c8ff;color:#000;border:0;padding:12px 20px;border-radius:8px;font-weight:700;font-size:15px;margin:8px 0;width:100%}
+</style>
+</head>
+<body>
+<h2>ProLine API Diagnostic</h2>
+<button onclick="run()">Run Test</button>
+<div id="out" class="box">Tap "Run Test"...</div>
+<script>
+const PROXY='/api/proline';
+async function run(){
+  const out=document.getElementById('out');
+  out.innerHTML='Testing...';
+  const now=new Date();
+  const start=new Date(now.getTime()-7*864e5);
+  const tests=[
+    {label:'A: with date range', body:{created_after:start.toISOString(),created_before:now.toISOString(),page:1,limit:100}},
+    {label:'B: no filters', body:{page:1,limit:100}},
+    {label:'C: empty body', body:{}}
+  ];
+  let html='';
+  for(const t of tests){
+    html+='\n=== '+t.label+' ===\n';
+    try{
+      const res=await fetch(PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint:'/v1/list/projects',body:t.body})});
+      html+='HTTP status: '+res.status+'\n';
+      html+='x-proline-status: '+(res.headers.get('x-proline-status')||'(none)')+'\n';
+      html+='x-proline-count: '+(res.headers.get('x-proline-count')||'(none)')+'\n';
+      html+='x-proline-note: '+(res.headers.get('x-proline-note')||'(none)')+'\n';
+      const txt=await res.text();
+      html+='body (first 500 chars):\n'+txt.slice(0,500)+'\n';
+    }catch(e){
+      html+='<span class="err">ERROR: '+e.message+'</span>\n';
+    }
+  }
+  out.innerHTML=html;
+}
+</script>
+</body>
+</html>
