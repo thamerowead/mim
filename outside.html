@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Outside Sales — Saddle River Roofing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0c0e12;--panel:#14171d;--panel2:#1a1e26;--line:#262b35;
+    --txt:#e8ebf0;--mut:#8a92a3;--accent:#e8825a;--g:#5ec27e;--y:#e8b84a;--r:#e26d6d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;padding:20px;max-width:1400px;margin:0 auto}
+  h1,h2,.num,.kpi-val,.big{font-family:'Barlow Condensed',sans-serif}
+  header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;margin-bottom:20px}
+  h1{font-size:30px;font-weight:700;letter-spacing:.5px}
+  h1 .sub{display:block;font-family:'Barlow';font-size:13px;font-weight:500;color:var(--mut);letter-spacing:2px;text-transform:uppercase}
+  .filters{display:flex;gap:8px;flex-wrap:wrap}
+  .filters button{background:var(--panel);color:var(--mut);border:1px solid var(--line);padding:9px 16px;border-radius:8px;font-family:'Barlow Condensed';font-size:16px;font-weight:600;cursor:pointer;transition:.15s}
+  .filters button:hover{border-color:var(--accent)}
+  .filters button.active{background:var(--accent);color:#14171d;border-color:var(--accent)}
+  .tv-btn{background:transparent;color:var(--mut);border:1px solid var(--line);padding:9px 14px;border-radius:8px;font-size:13px;cursor:pointer}
+  h2{font-size:14px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:2px;margin:26px 0 12px;font-family:'Barlow'}
+  .topline{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .tl-card{background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:14px;padding:20px}
+  .tl-card .lbl{font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:1.5px;font-weight:600}
+  .tl-card .big{font-size:42px;font-weight:700;line-height:1.1;margin-top:6px}
+  .tl-card .sub{font-size:12px;color:var(--mut);margin-top:4px}
+  .funnel{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .fn{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;position:relative;overflow:hidden}
+  .fn .stage{font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:1.5px;font-weight:600}
+  .fn .cnt{font-size:38px;font-weight:700;font-family:'Barlow Condensed';margin-top:4px}
+  .fn .conv{font-size:13px;margin-top:6px;font-weight:600}
+  .fn .bar{position:absolute;bottom:0;left:0;height:3px;background:var(--accent)}
+  .conv.g{color:var(--g)}.conv.y{color:var(--y)}.conv.r{color:var(--r)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .chart-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .chart-card .ct{font-size:14px;font-weight:600;color:var(--txt);margin-bottom:12px;font-family:'Barlow Condensed';font-size:18px}
+  .wrap{position:relative;height:240px}
+  .note{background:var(--panel);border:1px dashed var(--line);border-radius:12px;padding:16px;color:var(--mut);font-size:13px;line-height:1.6;margin-top:16px}
+  .note b{color:var(--txt)}
+  footer{margin-top:30px;color:var(--mut);font-size:12px;text-align:center;border-top:1px solid var(--line);padding-top:16px}
+  .loading{color:var(--mut);font-size:14px;padding:8px 0}
+  .err{color:var(--r);font-size:13px}
+  body.tv{padding:30px}
+  body.tv .filters,body.tv .tv-btn span{}
+  body.tv h1{font-size:42px}
+  body.tv .tl-card .big{font-size:56px}
+  @media(max-width:900px){.topline{grid-template-columns:repeat(2,1fr)}.funnel{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Outside Sales<span class="sub">Saddle River Roofing · Field Closers</span></h1>
+  <div class="filters" id="filters">
+    <button data-r="today">Today</button>
+    <button data-r="week">Week</button>
+    <button data-r="month" class="active">Month</button>
+    <button data-r="quarter">Quarter</button>
+    <button data-r="ytd">YTD</button>
+  </div>
+  <button class="tv-btn" id="tvBtn">📺 TV Mode</button>
+</header>
+
+<div id="status" class="loading">Loading live ProLine data…</div>
+
+<h2>Company Top-Line</h2>
+<div class="topline" id="topline"></div>
+
+<h2>Sales Funnel</h2>
+<div class="funnel" id="funnel"></div>
+
+<div class="grid2" style="margin-top:24px">
+  <div class="chart-card"><div class="ct">Revenue Over Time</div><div class="wrap"><canvas id="revChart"></canvas></div></div>
+  <div class="chart-card"><div class="ct">Jobs Won Over Time</div><div class="wrap"><canvas id="jobsChart"></canvas></div></div>
+</div>
+
+<div class="note">
+  <b>Note on rep leaderboard:</b> Individual closer performance is not shown because ProLine's Partner API does not expose the staff member assigned to each project. The metrics above reflect total company performance, which the API fully supports.
+</div>
+
+<footer>Live data from ProLine · Outside Sales Dashboard</footer>
+
+<script>
+const PROXY='/api/proline';
+let revChart,jobsChart,allProjects=[],curRange='month';
+
+function getRange(r){
+  const now=new Date();let start=new Date();
+  if(r==='today'){start.setHours(0,0,0,0);}
+  else if(r==='week'){start.setDate(now.getDate()-now.getDay());start.setHours(0,0,0,0);}
+  else if(r==='month'){start=new Date(now.getFullYear(),now.getMonth(),1);}
+  else if(r==='quarter'){const q=Math.floor(now.getMonth()/3);start=new Date(now.getFullYear(),q*3,1);}
+  else if(r==='ytd'){start=new Date(now.getFullYear(),0,1);}
+  return{start,end:now};
+}
+const fmtUSD=n=>'$'+Math.round(n).toLocaleString('en-US');
+const fmtM=n=> n>=1000000?'$'+(n/1000000).toFixed(2)+'M' : n>=1000?'$'+(n/1000).toFixed(1)+'k' : '$'+Math.round(n);
+const rev=p=>Number(p.project_budget_gross_revenue_actual)||0;
+const hasInspect=p=>!!p.project_status_date_inspect;
+const hasWon=p=>!!p.project_status_date_won;
+
+async function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+async function postPage(page){
+  for(let attempt=0;attempt<5;attempt++){
+    const r=await fetch(PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({endpoint:'/v1/list/projects',created_after:'2020-01-01',created_before:'2100-01-01',page,limit:100})});
+    const ps=r.headers.get('x-proline-status');
+    if(r.status===429||ps==='429'){ await sleep(1500*(attempt+1)); continue; }
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    const items=Array.isArray(d)?d:(d.results||d.data||d.projects||[]);
+    return items;
+  }
+  throw new Error('rate limited (429) — try again in a moment');
+}
+async function fetchAll(){
+  let page=1,out=[];
+  for(let i=0;i<25;i++){
+    const items=await postPage(page);
+    out=out.concat(items);
+    if(items.length<100)break;
+    page++;
+    await sleep(400);
+  }
+  return out;
+}
+
+function inRange(p,rg){
+  const d=new Date(p.created_at);
+  return d>=rg.start&&d<=rg.end;
+}
+
+function compute(projects,rg){
+  const inP=projects.filter(p=>inRange(p,rg));
+  const leads=inP.length;
+  const appts=inP.filter(hasInspect).length;
+  const won=inP.filter(hasWon).length;
+  const totRev=inP.filter(hasWon).reduce((s,p)=>s+rev(p),0);
+  const avgJob=won?totRev/won:0;
+  const closeRate=leads?(won/leads*100):0;
+  return{leads,appts,won,totRev,avgJob,closeRate,inP};
+}
+
+function renderTopline(k){
+  const cards=[
+    {lbl:'Total Revenue',val:fmtM(k.totRev),sub:'Won projects, gross revenue'},
+    {lbl:'Jobs Won',val:k.won,sub:'Closed deals'},
+    {lbl:'Close Rate',val:k.closeRate.toFixed(1)+'%',sub:'Won ÷ Leads'},
+    {lbl:'Avg Job Size',val:fmtM(k.avgJob),sub:'Revenue ÷ Jobs Won'},
+  ];
+  document.getElementById('topline').innerHTML=cards.map(c=>
+    `<div class="tl-card"><div class="lbl">${c.lbl}</div><div class="big">${c.val}</div><div class="sub">${c.sub}</div></div>`).join('');
+}
+
+function renderFunnel(k){
+  const a2l=k.leads?(k.appts/k.leads*100):0;
+  const s2a=k.appts?(k.won/k.appts*100):0;
+  const cls=v=>v>=40?'g':v>=20?'y':'r';
+  const stages=[
+    {stage:'Leads',cnt:k.leads,conv:'100% of leads',c:'g',w:100},
+    {stage:'Appointments',cnt:k.appts,conv:a2l.toFixed(1)+'% of leads',c:cls(a2l),w:a2l},
+    {stage:'Sold',cnt:k.won,conv:s2a.toFixed(1)+'% of appts',c:cls(s2a),w:s2a},
+  ];
+  document.getElementById('funnel').innerHTML=stages.map(s=>
+    `<div class="fn"><div class="stage">${s.stage}</div><div class="cnt">${s.cnt}</div><div class="conv ${s.c}">${s.conv}</div><div class="bar" style="width:${Math.max(s.w,4)}%"></div></div>`).join('');
+}
+
+function monthlySeries(projects){
+  const now=new Date();const labels=[],revData=[],jobData=[];
+  for(let i=5;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const next=new Date(now.getFullYear(),now.getMonth()-i+1,1);
+    labels.push(d.toLocaleDateString('en-US',{month:'short'}));
+    const won=projects.filter(p=>{const w=p.project_status_date_won?new Date(p.project_status_date_won):null;return w&&w>=d&&w<next;});
+    revData.push(won.reduce((s,p)=>s+rev(p),0));
+    jobData.push(won.length);
+  }
+  return{labels,revData,jobData};
+}
+
+function drawCharts(projects){
+  const s=monthlySeries(projects);
+  const gridc='#262b35',mut='#8a92a3';
+  if(revChart)revChart.destroy();
+  if(jobsChart)jobsChart.destroy();
+  revChart=new Chart(document.getElementById('revChart'),{type:'line',
+    data:{labels:s.labels,datasets:[{data:s.revData,borderColor:'#e8825a',backgroundColor:'rgba(232,130,90,.12)',fill:true,tension:.35,borderWidth:2,pointRadius:3}]},
+    options:{plugins:{legend:{display:false}},scales:{x:{grid:{color:gridc},ticks:{color:mut}},y:{grid:{color:gridc},ticks:{color:mut,callback:v=>'$'+(v/1000)+'k'}}},maintainAspectRatio:false}});
+  jobsChart=new Chart(document.getElementById('jobsChart'),{type:'bar',
+    data:{labels:s.labels,datasets:[{data:s.jobData,backgroundColor:'#5ec27e',borderRadius:6}]},
+    options:{plugins:{legend:{display:false}},scales:{x:{grid:{color:gridc},ticks:{color:mut}},y:{grid:{color:gridc},ticks:{color:mut,precision:0}}},maintainAspectRatio:false}});
+}
+
+function render(){
+  const rg=getRange(curRange);
+  const k=compute(allProjects,rg);
+  renderTopline(k);
+  renderFunnel(k);
+  drawCharts(allProjects);
+}
+
+async function init(){
+  const st=document.getElementById('status');
+  try{
+    allProjects=await fetchAll();
+    st.textContent='Live · '+allProjects.length+' projects loaded from ProLine';
+    st.classList.remove('err');
+    render();
+  }catch(e){
+    st.textContent='Could not load live data: '+e.message;
+    st.className='err';
+  }
+}
+
+document.getElementById('filters').addEventListener('click',e=>{
+  if(e.target.tagName!=='BUTTON')return;
+  [...document.querySelectorAll('#filters button')].forEach(b=>b.classList.remove('active'));
+  e.target.classList.add('active');
+  curRange=e.target.dataset.r;
+  render();
+});
+document.getElementById('tvBtn').addEventListener('click',()=>{
+  document.body.classList.toggle('tv');
+  document.getElementById('tvBtn').textContent=document.body.classList.contains('tv')?'✕ Exit TV':'📺 TV Mode';
+});
+
+init();
+</script>
+</body>
+</html>
