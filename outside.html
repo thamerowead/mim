@@ -118,7 +118,8 @@ async function fetchAll(ep,body={}){
   let page=1,all=[];
   while(true){
     const d=await prolinePost(ep,{...body,page,limit:100});
-    const items=d.data||d.projects||d.results||[];
+    const items=Array.isArray(d)?d:(d.data||d.projects||d.results||[]);
+
     all=all.concat(items);
     if(items.length<100) break;
     page++;if(page>50) break;
