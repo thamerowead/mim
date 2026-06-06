@@ -29,16 +29,20 @@ export default async function handler(req, res) {
 
     const data = await upstream.json();
 
-    // Attach diagnostics as headers (visible in DevTools, not in response body)
-    const projects = Array.isArray(data) ? data : (data?.projects || data?.data || []);
+    // ProLine returns { page, limit, total, results: [...] }
+    const projects = Array.isArray(data)
+      ? data
+      : (data?.results || data?.projects || data?.data || []);
+
+    // Diagnostics
     res.setHeader('x-proline-status', upstream.status);
     res.setHeader('x-proline-count', projects.length);
+    res.setHeader('x-proline-total', (data && data.total != null) ? data.total : 'n/a');
     res.setHeader('x-proline-sent', JSON.stringify(body || {}));
     if (!Array.isArray(data)) {
-      res.setHeader('x-proline-note', 'response-not-array: ' + Object.keys(data).join(','));
+      res.setHeader('x-proline-note', 'keys: ' + Object.keys(data).join(','));
     }
 
-    // Return the array directly so dashboards work without modification
     return res.status(200).json(projects);
   } catch (err) {
     return res.status(500).json({ error: err.message });
