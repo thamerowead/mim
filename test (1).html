@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProLine Field Test</title>
+<style>
+  body{font-family:-apple-system,system-ui,sans-serif;background:#0f0f0f;color:#e0e0e0;padding:16px;margin:0}
+  h2{color:#fff;font-size:18px;margin:18px 0 8px}
+  button{background:#e8825a;color:#fff;border:0;padding:14px 22px;border-radius:10px;font-size:16px;font-weight:600;width:100%;margin:10px 0}
+  button:active{opacity:.7}
+  .meta{font-size:13px;color:#9a9a9a;line-height:1.7;background:#1a1a1a;padding:10px;border-radius:8px;margin:8px 0}
+  pre{background:#1a1a1a;padding:12px;border-radius:8px;font-size:12px;line-height:1.6;white-space:pre-wrap;word-break:break-all;overflow-x:auto;border:1px solid #2a2a2a}
+  .keys{color:#7ec699}
+  .err{color:#e57373}
+</style>
+</head>
+<body>
+<h2>ProLine — Field Name Test</h2>
+<button onclick="run()">Run Test (مرة وحدة فقط)</button>
+<div id="status" class="meta">اضغط الزر مرة واحدة وانتظر النتيجة.</div>
+
+<h2>المشروع الأول — كامل</h2>
+<pre id="first">—</pre>
+
+<h2>أسماء كل الحقول (keys)</h2>
+<pre id="fieldlist" class="keys">—</pre>
+
+<script>
+async function run(){
+  const s=document.getElementById('status');
+  const f=document.getElementById('first');
+  const fl=document.getElementById('fieldlist');
+  s.textContent='... جاري الطلب';
+  f.textContent='—'; fl.textContent='—';
+  try{
+    const r=await fetch('/api/proline',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        created_after:'2026-01-01',
+        created_before:'2026-12-31',
+        page:1,
+        limit:25
+      })
+    });
+    const status=r.status;
+    const pstatus=r.headers.get('x-proline-status');
+    const pcount=r.headers.get('x-proline-count');
+    const pnote=r.headers.get('x-proline-note');
+    const text=await r.text();
+    s.innerHTML='HTTP: '+status+'<br>x-proline-status: '+pstatus+
+                '<br>x-proline-count: '+pcount+'<br>x-proline-note: '+pnote;
+
+    let data;
+    try{ data=JSON.parse(text); }catch(e){
+      f.innerHTML='<span class="err">الرد مو JSON صالح:</span>\n'+text.slice(0,800);
+      return;
+    }
+    const items=Array.isArray(data)?data:(data.results||data.data||data.projects||[]);
+    if(!items.length){
+      f.innerHTML='<span class="err">ما رجع ولا مشروع. (الأرجح 429 — انتظر دقيقة وأعد)</span>\nbody: '+text.slice(0,300);
+      return;
+    }
+    // المشروع الأول كامل، منسّق
+    f.textContent=JSON.stringify(items[0],null,2);
+    // قائمة كل الحقول
+    fl.textContent=Object.keys(items[0]).join('\n');
+  }catch(err){
+    s.innerHTML='<span class="err">خطأ: '+err.message+'</span>';
+  }
+}
+</script>
+</body>
+</html>
