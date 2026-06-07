@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProLine Proxy Diagnostic</title>
+<style>
+body{background:#0d1117;color:#e6edf3;font-family:monospace;padding:20px;font-size:14px;line-height:1.6}
+button{background:#238636;color:#fff;border:none;padding:12px 24px;border-radius:6px;font-size:16px;cursor:pointer;margin-bottom:16px;font-family:inherit}
+h1{font-size:20px;margin-bottom:4px}
+.sub{color:#8b949e;margin-bottom:16px}
+pre{background:#161b22;border:1px solid #2a3038;border-radius:8px;padding:16px;white-space:pre-wrap;word-break:break-word}
+.h{color:#58a6ff}.g{color:#3fb950}.r{color:#f78166}.m{color:#8b949e}
+</style>
+</head>
+<body>
+<h1>ProLine Proxy Diagnostic</h1>
+<div class="sub">Tests /api/proline with a YTD range and prints every diagnostic header.</div>
+<button id="run">▶ Run Test</button>
+<pre id="out">Press Run…</pre>
+<script>
+const out=document.getElementById('out');
+function line(label,val,cls){ return '<span class="m">'+label+':</span> <span class="'+(cls||'')+'">'+val+'</span>'; }
+
+document.getElementById('run').addEventListener('click',async()=>{
+  out.innerHTML='Running…';
+  const now=new Date();
+  const start=new Date(now.getFullYear(),0,1); // YTD
+  const after=start.toISOString();
+  const before=now.toISOString();
+  const t0=Date.now();
+  try{
+    const r=await fetch('/api/proline',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({created_after:after,created_before:before})
+    });
+    const secs=((Date.now()-t0)/1000).toFixed(1);
+    const status=r.headers.get('x-proline-status');
+    const count=r.headers.get('x-proline-count');
+    const total=r.headers.get('x-proline-total');
+    const note=r.headers.get('x-proline-note');
+    const body=await r.json();
+    const isArr=Array.isArray(body);
+    const len=isArr?body.length:'(not an array)';
+    const first=isArr&&body[0]?body[0]:body;
+    const keys=first&&typeof first==='object'?Object.keys(first).slice(0,12).join(', '):'(none)';
+
+    let html='';
+    html+=line('HTTP status',r.status,r.status===200?'g':'r')+'\n';
+    html+=line('time taken',secs+'s',secs<10?'g':'r')+'\n';
+    html+='\n--- proxy diagnostic headers ---\n';
+    html+=line('x-proline-status',status||'(missing)','h')+'\n';
+    html+=line('x-proline-count',count||'(missing)',count==='402'?'g':'r')+'\n';
+    html+=line('x-proline-total',total||'(missing — ProLine did NOT return total!)',total?'g':'r')+'\n';
+    html+=line('x-proline-note',note||'(none — good)',note?'r':'g')+'\n';
+    html+='\n--- response body ---\n';
+    html+=line('is plain array',isArr,isArr?'g':'r')+'\n';
+    html+=line('array length',len,len===402?'g':'r')+'\n';
+    html+=line('first object keys',keys,'m')+'\n';
+    html+='\n--- first project (raw) ---\n';
+    html+='<span class="m">'+JSON.stringify(first,null,2).slice(0,600)+'</span>';
+    out.innerHTML=html;
+  }catch(e){
+    out.innerHTML='<span class="r">ERROR: '+e.message+'</span>';
+  }
+});
+</script>
+</body>
+</html>
