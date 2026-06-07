@@ -38,7 +38,10 @@ module.exports = async (req, res) => {
 
   const created_after  = body.created_after  || null;
   const created_before = body.created_before || null;
-  const limit = 100;
+  // Request a large page so we collect everything in as few slow round-trips as
+  // possible. If ProLine caps the page lower (e.g. 100), the paging loop below
+  // still collects the rest — it adapts to whatever page size ProLine returns.
+  const limit = 500;
 
   const headers = {
     'Content-Type': 'application/json',
@@ -46,7 +49,7 @@ module.exports = async (req, res) => {
     'COMPANY_KEY': COMPANY_KEY
   };
 
-  const deadline = Date.now() + 8000; // stay under Vercel's 10s
+  const deadline = Date.now() + 9000; // stay under Vercel's 10s hard limit
   let all = [];
   let page = 1;
   let total = null;
@@ -93,11 +96,10 @@ module.exports = async (req, res) => {
     return { ok:false };
   }
 
-  // Page through until: collected `total`, a page comes back empty/short,
-  // we run out of time, or a hard safety cap. We do NOT trust `total` alone —
-  // we keep paging as long as pages keep returning a full batch.
-  let lastBatch = limit; // size returned by the previous page
-  while (Date.now() < deadline && page <= 50) { // 50-page hard cap = 5000 rows
+  // Page through until: collected `total`, an empty page, out of time, or a cap.
+  // Stop logic relies on the reported `total`, NOT on the requested page size —
+  // this works whether ProLine honors limit=500 or silently caps the page at 100.
+  while (Date.now() < deadline && page <= 50) { // 50-page hard cap
     const out = await fetchPage(page);
     if (!out.ok) {
       if (out.rate) note = 'partial: hit rate limit (429)';
@@ -107,15 +109,12 @@ module.exports = async (req, res) => {
     }
     const got = out.results || [];
     all = all.concat(got);
-    lastBatch = got.length;
 
-    // Stop only when this page returned fewer than we asked for (true last page),
-    // OR we've reached the reported total. An empty page also stops us.
-    if (got.length === 0) break;
-    if (total !== null && all.length >= total) break;
-    if (got.length < limit) break; // short page = last page
+    if (got.length === 0) break;                       // empty page = done
+    if (total !== null && all.length >= total) break;  // collected everything ProLine reports
+    if (total === null && got.length < limit) break;   // no total + short page = last page
     page++;
-    await sleep(120); // gentle pacing to avoid 429
+    await sleep(100); // gentle pacing to avoid 429
   }
 
   res.setHeader('x-proline-status', String(lastStatus));
