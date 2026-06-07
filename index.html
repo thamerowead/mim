@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sales Dashboards — Saddle River Roofing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--line:#2a3038;--txt:#e6edf3;--mut:#8b949e;--accent:#f78166}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font-family:'Barlow Condensed',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+h1{font-size:48px;font-weight:800;text-transform:uppercase;letter-spacing:1px;text-align:center}
+h1 span{color:var(--accent)}
+.sub{color:var(--mut);font-size:18px;margin:8px 0 36px;text-align:center}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;width:100%;max-width:920px}
+a.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:28px;text-decoration:none;color:var(--txt);transition:.2s;display:block}
+a.card:hover{border-color:var(--accent);transform:translateY(-3px)}
+.card .ico{font-size:34px}
+.card .t{font-size:24px;font-weight:700;margin:10px 0 6px;text-transform:uppercase}
+.card .d{color:var(--mut);font-size:15px}
+</style>
+</head>
+<body>
+<h1>Saddle River <span>Sales Dashboards</span></h1>
+<div class="sub">Live data from ProLine — updated in real time</div>
+<div class="cards">
+  <a class="card" href="outside.html"><div class="ico">🎯</div><div class="t">Outside Sales</div><div class="d">Revenue · Jobs Won · Close Rate · Funnel</div></a>
+  <a class="card" href="inside.html"><div class="ico">📞</div><div class="t">Inside Sales</div><div class="d">Appts Set/Sat · Speed to Lead</div></a>
+  <a class="card" href="marketing.html"><div class="ico">📈</div><div class="t">Marketing</div><div class="d">Leads · CPL · ROAS · Spend Efficiency</div></a>
+</div>
+</body>
+</html>
