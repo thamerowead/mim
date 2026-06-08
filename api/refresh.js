@@ -2,17 +2,19 @@
 // Saddle River Roofing — Sales Dashboards
 //
 // ROOT CAUSE (confirmed from Vercel logs): the free tier hard-caps every
-// function at 10s. A single ProLine page can itself approach or exceed 10s once
-// retries/backoff are counted (logs showed 4 POSTs to ProLine in one invocation
-// reaching 10.03s -> FUNCTION_INVOCATION_TIMEOUT). So we cannot assume "collect
-// a whole page per call" is safe either.
+// function at 10s, and a single ProLine page (100 rows) takes ~7-8s to return
+// (logs: 7.15s). Collecting all 402 in one invocation is impossible; even one
+// full page leaves little margin, and an abort set below the page's own time
+// cut it off (AbortError at 7s).
 //
-// FIX: a HARD time guard. Every invocation watches the clock and ALWAYS returns
-// a response before ~8s, no matter what. Each fetch is itself aborted at 7s so a
-// slow ProLine response can never drag us past the limit. No retry loop inside a
-// single invocation. Progress (cursor + accumulated projects) is persisted in
-// refresh-state.json so the next cron tick resumes exactly where this stopped.
-// Once all projects are gathered, the list is published to projects-cache.json.
+// FIX: collect ONE page per invocation. Request a small page (25) so ProLine
+// returns faster when it honors the limit; if it caps at 100 anyway, the abort
+// sits at 9s (just under the 10s wall, above the page's ~7s) so the page still
+// finishes. The cache read is itself abort-guarded at 3s. Progress (cursor +
+// accumulated projects) is persisted in refresh-state.json so the next cron tick
+// resumes where this stopped. When all projects are gathered, the finished list
+// is published to projects-cache.json. Completion relies on ProLine's reported
+// `total`, so it never stops early and loses rows.
 //
 // Auth: CRON_SECRET via ?key=... or Authorization: Bearer.
 
@@ -21,20 +23,29 @@ const { put, list } = require('@vercel/blob');
 const PROLINE_URL = 'https://api.proline.app/v1/list/projects';
 const CACHE_KEY = 'projects-cache.json';
 const STATE_KEY = 'refresh-state.json';
-const PAGE_LIMIT = 100;
+const PAGE_LIMIT = 25;     // request size sent to ProLine.
+// ProLine is documented to sometimes cap pages at 100 regardless of this value.
+// Requesting 25 makes each page MUCH faster to return when honored (a 100-row
+// page took 7.15s in logs; ~25 rows returns far quicker). The paging logic below
+// adapts to whatever page size ProLine actually returns, so correctness holds
+// whether ProLine honors 25 or caps at 100 — we just collect more/fewer pages.
 
-const FETCH_TIMEOUT_MS = 7000; // abort a single ProLine fetch after this
+const FETCH_TIMEOUT_MS = 9000; // abort a single ProLine fetch after this.
 
 async function readBlob(pathname, token){
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 3000); // cache read must be quick
   try {
     const { blobs } = await list({ prefix: pathname, token, limit: 1 });
     const hit = blobs.find(b => b.pathname === pathname) || blobs[0];
     if (!hit) return null;
-    const r = await fetch(hit.url + '?t=' + Date.now(), { cache: 'no-store' });
+    const r = await fetch(hit.url + '?t=' + Date.now(), { cache: 'no-store', signal: ctrl.signal });
     if (!r.ok) return null;
     return await r.json();
   } catch (e) {
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -104,12 +115,11 @@ module.exports = async (req, res) => {
   }
 
   // ---- Collect EXACTLY ONE page per invocation ----
-  // This is deliberate and explicit, NOT time-based. A single ProLine page takes
-  // up to ~7s; one fetch + one Blob write stays safely under the 10s free-tier
-  // wall. Doing more than one page per call is what caused the earlier timeout
-  // (logs showed 4 POSTs in one invocation -> 10.03s). One page per tick removes
-  // any dependence on how fast the network happens to be. The external cron calls
-  // this every minute, so all pages are gathered within a few minutes.
+  // Deliberate and explicit, NOT time-based. One ProLine page + one Blob write
+  // stays under the 10s free-tier wall. The fetch is abort-guarded at 9s so a
+  // slow page can never cross the limit; collecting more than one page per call
+  // is what caused the original 10.03s timeout. The external cron calls this
+  // every minute, so all pages are gathered within a few minutes.
   const out = await fetchPageOnce(state.page, PARTNER_KEY, COMPANY_KEY);
 
   if (!out.ok) {
@@ -123,9 +133,17 @@ module.exports = async (req, res) => {
   state.accumulated = state.accumulated.concat(got);
   if (out.total !== null) state.total = out.total;
 
-  const reachedTotal = (state.total !== null && state.accumulated.length >= state.total);
-  const shortPage = (got.length < PAGE_LIMIT);
-  const done = reachedTotal || shortPage || got.length === 0;
+  // Completion logic — designed to NEVER stop early and lose projects:
+  //  - If ProLine reported a total, trust it: done only when we've collected it all.
+  //  - If no total is available, fall back to "an empty or short page means the end".
+  let done;
+  if (state.total !== null) {
+    done = state.accumulated.length >= state.total;
+  } else {
+    done = (got.length === 0) || (got.length < PAGE_LIMIT);
+  }
+  // Absolute safety: an empty page always ends the cycle (prevents infinite paging).
+  if (got.length === 0) done = true;
 
   try {
     if (done) {
