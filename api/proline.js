@@ -1,17 +1,17 @@
-// Vercel Serverless Proxy — READ FROM CACHE
+// Vercel Serverless Proxy — READS FROM CACHE
 // Saddle River Roofing — Sales Dashboards
 //
-// ProLine's API is slow and caps pages at 100, so collecting all ~402 projects
-// live exceeds the hosting time limit. Instead, an hourly background job
-// (api/refresh.js, triggered by an external cron) collects everything into a
-// Blob (projects-cache.json). This proxy simply reads that cached JSON and
-// returns the projects array instantly — no ProLine round-trip on page load.
+// The hourly/minutely background job (api/refresh.js) collects all ProLine
+// projects into projects-cache.json. This proxy simply reads that finished
+// cache and returns the projects array instantly — no ProLine round-trip on
+// page load, so it never hits the function time limit.
 //
-// Dashboards filter by date client-side, so this returns the FULL cached set.
+// Dashboards send an empty body {} and filter by date client-side, so this
+// always returns the FULL cached set.
 
 const { list } = require('@vercel/blob');
 
-const BLOB_KEY = 'projects-cache.json';
+const CACHE_KEY = 'projects-cache.json';
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -23,29 +23,25 @@ module.exports = async (req, res) => {
   if (!BLOB_TOKEN) { res.status(500).json({ error: 'Missing BLOB_READ_WRITE_TOKEN' }); return; }
 
   try {
-    // Find the cache blob's current URL (the URL can change between writes).
-    const { blobs } = await list({ prefix: BLOB_KEY, token: BLOB_TOKEN });
-    if (!blobs || blobs.length === 0) {
-      res.setHeader('x-cache-note', 'no cache yet — run /api/refresh first');
+    const { blobs } = await list({ prefix: CACHE_KEY, token: BLOB_TOKEN, limit: 1 });
+    const hit = blobs.find(b => b.pathname === CACHE_KEY) || blobs[0];
+    if (!hit) {
+      // Cache not built yet — return empty array so dashboards render cleanly.
       res.status(200).json([]);
       return;
     }
-    // Pick the most recent matching blob.
-    const blob = blobs.sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))[0];
 
-    const r = await fetch(blob.url, { cache: 'no-store' });
+    const r = await fetch(hit.url + '?t=' + Date.now(), { cache: 'no-store' });
     if (!r.ok) { res.status(200).json([]); return; }
     const data = await r.json();
-
     const projects = (data && Array.isArray(data.projects)) ? data.projects : [];
-    res.setHeader('x-cache-count', String(projects.length));
-    if (data && data.updated_at) res.setHeader('x-cache-updated', data.updated_at);
-    if (data && typeof data.total === 'number') res.setHeader('x-cache-total', String(data.total));
 
-    // Return a PLAIN ARRAY — dashboards expect this exact shape.
+    // Surface freshness so dashboards can show an "as of" timestamp if desired.
+    if (data && data.updated_at) res.setHeader('x-cache-updated', data.updated_at);
+    res.setHeader('x-cache-count', String(projects.length));
+
     res.status(200).json(projects);
   } catch (e) {
-    res.setHeader('x-cache-note', 'read error: ' + String(e));
-    res.status(200).json([]);
+    res.status(500).json({ error: 'Cache read failed: ' + String(e) });
   }
 };
