@@ -1,0 +1,6 @@
+{
+  "functions": {
+    "api/refresh.js": { "maxDuration": 10 },
+    "api/proline.js": { "maxDuration": 10 }
+  }
+}
