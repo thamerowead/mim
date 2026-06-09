@@ -4,7 +4,7 @@
 
 const GH_OWNER  = 'thamerowead';
 const GH_REPO   = 'mim';
-const GH_BRANCH = 'master';
+const GH_BRANCH = 'main';
 const CACHE_PATH = 'data/projects-cache.json';
 
 const FETCH_TIMEOUT = 6000;
