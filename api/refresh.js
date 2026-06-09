@@ -5,7 +5,7 @@
 
 const GH_OWNER  = 'thamerowead';
 const GH_REPO   = 'mim';
-const GH_BRANCH = 'master';
+const GH_BRANCH = 'main';
 const STATE_PATH = 'data/refresh-state.json';   // progress tracker
 const CACHE_PATH = 'data/projects-cache.json';  // finished dataset dashboards read
 
