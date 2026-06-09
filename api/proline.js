@@ -1,47 +1,58 @@
-// Vercel Serverless Proxy — READS FROM CACHE
-// Saddle River Roofing — Sales Dashboards
-//
-// The hourly/minutely background job (api/refresh.js) collects all ProLine
-// projects into projects-cache.json. This proxy simply reads that finished
-// cache and returns the projects array instantly — no ProLine round-trip on
-// page load, so it never hits the function time limit.
-//
-// Dashboards send an empty body {} and filter by date client-side, so this
-// always returns the FULL cached set.
+// api/proline.js
+// Reader: serves the cached projects to the dashboards instantly.
+// Reads projects-cache.json from GitHub (no Vercel Blob, no live ProLine call).
 
-const { list } = require('@vercel/blob');
+const GH_OWNER  = 'thamerowead';
+const GH_REPO   = 'mim';
+const GH_BRANCH = 'master';
+const CACHE_PATH = 'data/projects-cache.json';
 
-const CACHE_KEY = 'projects-cache.json';
+const FETCH_TIMEOUT = 6000;
 
-module.exports = async (req, res) => {
+async function timedFetch(url, opts, ms) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...opts, signal: ctrl.signal });
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+export default async function handler(req, res) {
+  // CORS / preflight
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') { res.status(200).end(); return; }
-
-  const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!BLOB_TOKEN) { res.status(500).json({ error: 'Missing BLOB_READ_WRITE_TOKEN' }); return; }
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    const { blobs } = await list({ prefix: CACHE_KEY, token: BLOB_TOKEN, limit: 1 });
-    const hit = blobs.find(b => b.pathname === CACHE_KEY) || blobs[0];
-    if (!hit) {
-      // Cache not built yet — return empty array so dashboards render cleanly.
-      res.status(200).json([]);
-      return;
+    // Read raw cache from GitHub. Token auth lets us read fast & avoid CDN lag.
+    const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${CACHE_PATH}?ref=${GH_BRANCH}`;
+    const ghRes = await timedFetch(url, {
+      headers: {
+        'Authorization': `Bearer ${process.env.GITHUB_TOKEN}`,
+        'Accept': 'application/vnd.github+json',
+        'User-Agent': 'mim-proline'
+      }
+    }, FETCH_TIMEOUT);
+
+    if (ghRes.status === 404) {
+      // cache not built yet
+      return res.status(200).json({ updated: null, total: 0, projects: [] });
+    }
+    if (!ghRes.ok) {
+      throw new Error(`GitHub read failed: ${ghRes.status}`);
     }
 
-    const r = await fetch(hit.url + '?t=' + Date.now(), { cache: 'no-store' });
-    if (!r.ok) { res.status(200).json([]); return; }
-    const data = await r.json();
-    const projects = (data && Array.isArray(data.projects)) ? data.projects : [];
+    const meta = await ghRes.json();
+    const decoded = Buffer.from(meta.content, 'base64').toString('utf8');
+    const data = JSON.parse(decoded);
 
-    // Surface freshness so dashboards can show an "as of" timestamp if desired.
-    if (data && data.updated_at) res.setHeader('x-cache-updated', data.updated_at);
-    res.setHeader('x-cache-count', String(projects.length));
+    res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=120');
+    return res.status(200).json(data);
 
-    res.status(200).json(projects);
-  } catch (e) {
-    res.status(500).json({ error: 'Cache read failed: ' + String(e) });
+  } catch (err) {
+    return res.status(500).json({ error: String(err.message || err), projects: [] });
   }
-};
+}
